@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Ticket di tutti i reparti</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Protocollo</th>
+      <th>Titolo</th>
+      <th>Comparto</th>
+      <th>Priorità</th>
+      <th>Creato da</th>
+      <th>Creato il</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for t in tickets %}
+    <tr>
+      <td><span class="tag">{{ t.protocol }}</span></td>
+      <td>{{ t.title }}</td>
+      <td>{{ t.department.code }}</td>
+      <td>{{ t.get_priority_display }}</td>
+      <td>{{ t.created_by.username }}</td>
+      <td>{{ t.created_at|date:"Y-m-d H:i" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="muted">Nessun ticket presente.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

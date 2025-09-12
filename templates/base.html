@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>ATIcketing</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: .6rem .4rem; text-align:left; }
+    .tag { display:inline-block; padding:.15rem .5rem; border:1px solid #ddd; border-radius:999px; font-size:.85rem; }
+    .btn { padding:.5rem .9rem; border:1px solid #333; border-radius:.5rem; text-decoration:none; }
+    .muted { color:#666; font-size:.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ATIcketing</h1>
+    <nav>
+      {% if request.user.is_authenticated %}
+        <span class="muted">Ciao, {{ request.user.username }}</span>
+        &nbsp;|&nbsp; <a class="btn" href="{% url 'logout' %}">Logout</a>
+      {% endif %}
+    </nav>
+  </header>
+  {% block content %}{% endblock %}
+</body>
+</html>

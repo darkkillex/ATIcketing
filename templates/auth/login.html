@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Accedi</h2>
+<form method="post" action="">
+  {% csrf_token %}
+  <p>
+    <label>Username</label><br>
+    <input type="text" name="username" autofocus required>
+  </p>
+  <p>
+    <label>Password</label><br>
+    <input type="password" name="password" required>
+  </p>
+  {% if form.errors %}
+    <p style="color:#c00">Credenziali non valide.</p>
+  {% endif %}
+  <button class="btn" type="submit">Entra</button>
+</form>
+<p class="muted">Dopo il login verrai indirizzato alla tua dashboard in base al profilo.</p>
+{% endblock %}
