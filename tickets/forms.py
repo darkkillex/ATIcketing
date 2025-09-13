@@ -47,3 +47,40 @@ class NewTicketForm(forms.ModelForm):
         if errors:
             raise forms.ValidationError(errors)
         return files
+
+# --- Commenti e upload aggiuntivo ---
+class CommentForm(forms.Form):
+    body = forms.CharField(
+        label="Commento",
+        widget=forms.Textarea(attrs={'rows': 4}),
+        required=True
+    )
+    is_internal = forms.BooleanField(
+        label="Commento interno (visibile solo allo staff)",
+        required=False
+    )
+
+class AttachmentUploadForm(forms.Form):
+    attachments = forms.FileField(
+        required=True,
+        widget=MultiFileInput(attrs={'multiple': True})
+    )
+
+    def clean_attachments(self):
+        files = self.files.getlist('attachments')
+        errors = []
+        for f in files:
+            # Estensione
+            _, ext = os.path.splitext(f.name)
+            ext = (ext or '').replace('.', '').lower()
+            if ext not in ALLOWED_EXTS:
+                errors.append(f"File non consentito: {f.name} (estensione .{ext})")
+            # Dimensione
+            if f.size > MAX_SIZE_BYTES:
+                errors.append(
+                    f"{f.name}: dimensione {int(f.size/1024/1024)}MB oltre il limite di "
+                    f"{settings.ATTACHMENTS_MAX_SIZE_MB}MB"
+                )
+        if errors:
+            raise forms.ValidationError(errors)
+        return files
