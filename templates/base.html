@@ -30,6 +30,8 @@
         {% if request.user.is_authenticated %}
           <li><a href="{% url 'ticket_new' %}"><i class="material-icons left">add_circle</i>Nuovo Ticket</a></li>
           <li><a href="{% url 'logout' %}"><i class="material-icons left">exit_to_app</i>Logout</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}">Accedi</a></li>
         {% endif %}
       </ul>
     </div>

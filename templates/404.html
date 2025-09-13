@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pagina non trovata (404){% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top:4rem;">
+  <div class="card z-depth-2">
+    <div class="card-content center">
+      <i class="material-icons large red-text text-accent-2">error_outline</i>
+      <h4 class="brand">Ops! Pagina non trovata (404)</h4>
+      <p class="grey-text">Il link potrebbe essere scaduto oppure l’indirizzo non è corretto.</p>
+
+      <div class="section">
+        <a href="{% url 'landing' %}" class="btn waves-effect waves-light">
+          <i class="material-icons left">home</i>Vai alla dashboard
+        </a>
+        <a href="{% url 'ticket_new' %}" class="btn-flat">
+          <i class="material-icons left">add_circle</i>Nuovo ticket
+        </a>
+
+        {% if not request.user.is_authenticated %}
+          <a href="{% url 'login' %}" class="btn-flat">
+            <i class="material-icons left">login</i>Accedi
+          </a>
+        {% endif %}
+      </div>
+
+      <p class="grey-text" style="margin-top: 1rem;">
+        Richiesta: <code>{{ request.path }}</code>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
