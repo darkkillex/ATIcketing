@@ -1,9 +1,12 @@
+import csv
+
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.http import HttpResponseForbidden
 from django.contrib import messages
 from django.db.models import Q
@@ -139,6 +142,120 @@ def team_dashboard(request):
         'page_obj': page_obj,
         'paginator': paginator,
     })
+
+@login_required
+def operator_export_csv(request):
+    """Esporta in CSV i MIEI ticket, rispettando i filtri correnti della dashboard Operatore."""
+    qs = Ticket.objects.select_related('department', 'created_by', 'assignee').filter(created_by=request.user)
+
+    # Applica gli stessi filtri della operator_dashboard
+    form = TicketFilterForm(request.GET or None, user=request.user, is_team=False)
+    if form.is_valid():
+        cd = form.cleaned_data
+        q = cd.get('q')
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(protocol__icontains=q))
+        if cd.get('status'):
+            qs = qs.filter(status=cd['status'])
+        if cd.get('priority'):
+            qs = qs.filter(priority=cd['priority'])
+        if cd.get('department'):
+            qs = qs.filter(department_id=int(cd['department']))
+        if cd.get('date_from'):
+            start = timezone.make_aware(datetime.combine(cd['date_from'], time.min))
+            qs = qs.filter(created_at__gte=start)
+        if cd.get('date_to'):
+            end = timezone.make_aware(datetime.combine(cd['date_to'], time.max))
+            qs = qs.filter(created_at__lte=end)
+
+    qs = qs.order_by('-created_at')[:10000]  # safety cap
+
+    # Response CSV (UTF-8 BOM + ;)
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="tickets_operator.csv"'
+    response.write('\ufeff')  # BOM per Excel
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow([
+        'Protocollo', 'Titolo', 'Comparto', 'Priorità', 'Stato',
+        'Creato da', 'Creato il', 'Assegnato a', 'Impatto', 'Urgenza',
+        'Location', 'Asset'
+    ])
+    for t in qs:
+        writer.writerow([
+            t.protocol,
+            t.title,
+            t.department.code,
+            t.get_priority_display(),
+            t.get_status_display(),
+            getattr(t.created_by, 'username', ''),
+            t.created_at.strftime('%d/%m/%Y %H:%M'),
+            getattr(t.assignee, 'username', ''),
+            t.get_impact_display(),
+            t.get_urgency_display(),
+            t.location or '',
+            t.asset_code or '',
+        ])
+    return response
+
+@login_required
+def team_export_csv(request):
+    """Esporta in CSV TUTTI i ticket (o 'Solo miei' se spuntato), rispettando i filtri correnti della dashboard Team."""
+    if not user_in_groups(request.user, ADMIN_GROUPS):
+        return redirect('dash_operator')
+
+    qs = Ticket.objects.select_related('department', 'created_by', 'assignee')
+
+    # Applica gli stessi filtri della team_dashboard
+    form = TicketFilterForm(request.GET or None, user=request.user, is_team=True)
+    if form.is_valid():
+        cd = form.cleaned_data
+        q = cd.get('q')
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(protocol__icontains=q))
+        if cd.get('status'):
+            qs = qs.filter(status=cd['status'])
+        if cd.get('priority'):
+            qs = qs.filter(priority=cd['priority'])
+        if cd.get('department'):
+            qs = qs.filter(department_id=int(cd['department']))
+        if cd.get('date_from'):
+            start = timezone.make_aware(datetime.combine(cd['date_from'], time.min))
+            qs = qs.filter(created_at__gte=start)
+        if cd.get('date_to'):
+            end = timezone.make_aware(datetime.combine(cd['date_to'], time.max))
+            qs = qs.filter(created_at__lte=end)
+        if cd.get('mine_only'):
+            qs = qs.filter(created_by=request.user)
+
+    qs = qs.order_by('-created_at')[:10000]  # safety cap
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="tickets_team.csv"'
+    response.write('\ufeff')
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow([
+        'Protocollo', 'Titolo', 'Comparto', 'Priorità', 'Stato',
+        'Creato da', 'Creato il', 'Assegnato a', 'Impatto', 'Urgenza',
+        'Location', 'Asset'
+    ])
+    for t in qs:
+        writer.writerow([
+            t.protocol,
+            t.title,
+            t.department.code,
+            t.get_priority_display(),
+            t.get_status_display(),
+            getattr(t.created_by, 'username', ''),
+            t.created_at.strftime('%d/%m/%Y %H:%M'),
+            getattr(t.assignee, 'username', ''),
+            t.get_impact_display(),
+            t.get_urgency_display(),
+            t.location or '',
+            t.asset_code or '',
+        ])
+    return response
 
 @login_required
 def ticket_detail(request, pk: int):
