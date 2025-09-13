@@ -21,6 +21,10 @@ from tickets.views import (
 router = DefaultRouter()
 router.register(r'tickets', TicketViewSet, basename='ticket')
 
+#Easter Eeeeeeggs
+def boom(request):
+    raise Exception("Boom di test 500!")
+
 urlpatterns = [
     # Landing & dashboard
     path('', landing, name='landing'),
@@ -34,7 +38,9 @@ urlpatterns = [
             template_name='auth/login.html',
             redirect_authenticated_user=True
          ),
-         name='login'),
+         name='login'
+    ),
+
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
 
     # Admin
@@ -53,6 +59,7 @@ urlpatterns = [
     # Alias legacy (tienili solo finché non aggiorni i template)
     path('dash/operator/export.csv', operator_export_csv, name='dash_operator_export'),
     path('dash/team/export.csv', team_export_csv, name='dash_team_export'),
+    path("_boom/", boom),
 ]
 
 # Media (solo in dev)
@@ -63,4 +70,15 @@ if settings.DEBUG:
 def custom_404(request, exception):
     return render(request, "404.html", status=404)
 
+def custom_403(request, exception):
+    # Passa RequestContext con i context processors (auth, request, ecc.)
+    return render(request, "403.html", status=403)
+
+def custom_500(request):
+    # Nota: handler500 NON riceve 'exception'
+    return render(request, "500.html", status=500)
+
 handler404 = "ATIcketing.urls.custom_404"
+handler403 = "ATIcketing.urls.custom_403"
+handler500 = "ATIcketing.urls.custom_500"
+

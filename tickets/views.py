@@ -10,6 +10,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied
 from datetime import datetime, time
 from django.utils import timezone
 
@@ -234,7 +235,8 @@ def ticket_detail(request, pk: int):
 
     # Autorizzazione
     if not (ticket.created_by_id == request.user.id or is_staffish(request.user)):
-        return HttpResponseForbidden("Non autorizzato")
+        #return HttpResponseForbidden("Non autorizzato")
+        raise PermissionDenied("Non autorizzato")
 
     can_change_status = is_staffish(request.user)
 
@@ -347,7 +349,8 @@ def new_ticket(request):
 def ticket_audit_csv(request, pk: int):
     ticket = get_object_or_404(Ticket, pk=pk)
     if not (ticket.created_by_id == request.user.id or is_staffish(request.user)):
-        return HttpResponseForbidden("Non autorizzato")
+        #return HttpResponseForbidden("Non autorizzato")
+        raise PermissionDenied("Non autorizzato")
 
     audits = ticket.audits.select_related('actor').order_by('created_at')
 
