@@ -1,8 +1,10 @@
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.utils import timezone
 import os
 
-from .models import Ticket
+from .models import Ticket, Department
 
 ALLOWED_EXTS = set(ext.strip().lower() for ext in settings.ATTACHMENTS_ALLOWED_EXTENSIONS)
 MAX_SIZE_BYTES = settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
@@ -84,3 +86,38 @@ class AttachmentUploadForm(forms.Form):
         if errors:
             raise forms.ValidationError(errors)
         return files
+
+class TicketFilterForm(forms.Form):
+    q = forms.CharField(label="Testo", required=False)
+    status = forms.ChoiceField(label="Stato", required=False)
+    priority = forms.ChoiceField(label="Priorità", required=False)
+    department = forms.ChoiceField(label="Comparto", required=False)
+    date_from = forms.DateField(
+        label="Dal", required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        input_formats=['%Y-%m-%d', '%d/%m/%Y']
+    )
+    date_to = forms.DateField(
+        label="Al", required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        input_formats=['%Y-%m-%d', '%d/%m/%Y']
+    )
+    page_size = forms.ChoiceField(
+        label="Per pagina", required=False,
+        choices=[('25', '25'), ('50', '50'), ('100', '100')], initial='25'
+    )
+    mine_only = forms.BooleanField(label="Solo miei", required=False)
+
+    def __init__(self, *args, user=None, is_team=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Scelte dinamiche
+        self.fields['status'].choices = [('', 'Tutti')] + list(Ticket.STATUS_CHOICES)
+        self.fields['priority'].choices = [('', 'Tutte')] + list(Ticket.PRIORITY_CHOICES)
+        deps = Department.objects.all().order_by('code').values_list('id', 'code')
+        self.fields['department'].choices = [('', 'Tutti')] + [(str(i), c) for i, c in deps]
+        # Style Materialize per select
+        for name in ('status', 'priority', 'department', 'page_size'):
+            self.fields[name].widget.attrs['class'] = 'browser-default'
+        # L'operatore non vede "Solo miei"
+        if not is_team:
+            self.fields.pop('mine_only', None)

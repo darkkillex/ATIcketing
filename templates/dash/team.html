@@ -1,10 +1,70 @@
 {% extends 'base.html' %}
+{% load url_utils %}
 {% block content %}
+
 <div class="table-title">
   <i class="material-icons blue-text text-darken-2">dashboard</i>
   <h5 class="blue-text text-darken-2" style="margin:0;">Ticket di tutti i reparti</h5>
 </div>
 
+<!-- FILTRI -->
+<div class="card">
+  <div class="card-content">
+    <form method="get">
+      <div class="row">
+        <div class="input-field col s12 m6 l4">
+          <input type="text" name="q" id="id_q" value="{{ filter_form.q.value|default_if_none:'' }}">
+          <label for="id_q" class="active">Cerca (titolo/descrizione/protocollo)</label>
+        </div>
+
+        <div class="input-field col s12 m6 l2">
+          {{ filter_form.status }}
+          <label class="active">Stato</label>
+        </div>
+
+        <div class="input-field col s12 m6 l2">
+          {{ filter_form.priority }}
+          <label class="active">Priorità</label>
+        </div>
+
+        <div class="input-field col s12 m6 l2">
+          {{ filter_form.department }}
+          <label class="active">Comparto</label>
+        </div>
+
+        <div class="input-field col s6 m3 l2">
+          {{ filter_form.date_from }}
+          <label class="active">Dal</label>
+        </div>
+        <div class="input-field col s6 m3 l2">
+          {{ filter_form.date_to }}
+          <label class="active">Al</label>
+        </div>
+
+        <div class="input-field col s6 m3 l2">
+          {{ filter_form.page_size }}
+          <label class="active">Per pagina</label>
+        </div>
+
+        <div class="col s12 m6 l2" style="margin-top: 20px;">
+          <label>
+            <input type="checkbox" name="mine_only" {% if filter_form.mine_only.value %}checked{% endif %}>
+            <span>Solo miei</span>
+          </label>
+        </div>
+
+        <div class="input-field col s12 m12 l4 right-align">
+          <a class="btn-flat" href="."><i class="material-icons left">refresh</i>Reset</a>
+          <button class="btn waves-effect waves-light blue darken-3" type="submit">
+            <i class="material-icons left">filter_list</i>Filtra
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- TABELLA -->
 <div class="card">
   <div class="card-content">
     <table class="highlight responsive-table">
@@ -34,10 +94,29 @@
           <td>{{ t.created_at|date:"d/m/Y H:i" }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="6" class="grey-text">Nessun ticket presente.</td></tr>
+        <tr><td colspan="6" class="grey-text">Nessun ticket trovato.</td></tr>
       {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  <!-- PAGINAZIONE -->
+  <div class="card-action center">
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+        <li class="waves-effect"><a href="{% url_replace page=page_obj.previous_page_number %}"><i class="material-icons">chevron_left</i></a></li>
+      {% else %}
+        <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
+      {% endif %}
+
+      <li class="active blue darken-3"><a href="#!">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
+
+      {% if page_obj.has_next %}
+        <li class="waves-effect"><a href="{% url_replace page=page_obj.next_page_number %}"><i class="material-icons">chevron_right</i></a></li>
+      {% else %}
+        <li class="disabled"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
+      {% endif %}
+    </ul>
   </div>
 </div>
 {% endblock %}

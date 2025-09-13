@@ -6,11 +6,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.contrib import messages
+from django.db.models import Q
+from django.core.paginator import Paginator
+from datetime import datetime, time
+from django.utils import timezone
+
 
 from .models import Ticket, Department, Attachment, Comment
 from .serializers import TicketSerializer
 from .services import create_ticket_with_notification
-from .forms import NewTicketForm, CommentForm, AttachmentUploadForm
+from .forms import NewTicketForm, CommentForm, AttachmentUploadForm, TicketFilterForm
 
 ADMIN_GROUPS = {'Admin', 'SuperUser', 'Coordinatore'}
 
@@ -49,15 +54,91 @@ def landing(request):
 
 @login_required
 def operator_dashboard(request):
-    qs = Ticket.objects.select_related('department').filter(created_by=request.user).order_by('-created_at')[:50]
-    return render(request, 'dash/operator.html', {'tickets': qs})
+    # Base: solo i ticket dell'utente
+    qs = Ticket.objects.select_related('department').filter(created_by=request.user)
+
+    # Filtri
+    from .forms import TicketFilterForm
+    form = TicketFilterForm(request.GET or None, user=request.user, is_team=False)
+    if form.is_valid():
+        cd = form.cleaned_data
+        q = cd.get('q')
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(protocol__icontains=q))
+        if cd.get('status'):
+            qs = qs.filter(status=cd['status'])
+        if cd.get('priority'):
+            qs = qs.filter(priority=cd['priority'])
+        if cd.get('department'):
+            qs = qs.filter(department_id=int(cd['department']))
+        if cd.get('date_from'):
+            start = timezone.make_aware(datetime.combine(cd['date_from'], time.min))
+            qs = qs.filter(created_at__gte=start)
+        if cd.get('date_to'):
+            end = timezone.make_aware(datetime.combine(cd['date_to'], time.max))
+            qs = qs.filter(created_at__lte=end)
+        page_size = int(cd.get('page_size') or 25)
+    else:
+        page_size = 25
+
+    qs = qs.order_by('-created_at')
+
+    # Paginazione
+    paginator = Paginator(qs, page_size)
+    page_number = request.GET.get('page') or 1
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'dash/operator.html', {
+        'filter_form': form,
+        'tickets': page_obj.object_list,
+        'page_obj': page_obj,
+        'paginator': paginator,
+    })
 
 @login_required
 def team_dashboard(request):
     if not user_in_groups(request.user, ADMIN_GROUPS):
         return redirect('dash_operator')
-    qs = Ticket.objects.select_related('department', 'created_by').order_by('-created_at')[:100]
-    return render(request, 'dash/team.html', {'tickets': qs})
+
+    qs = Ticket.objects.select_related('department', 'created_by')
+
+    from .forms import TicketFilterForm
+    form = TicketFilterForm(request.GET or None, user=request.user, is_team=True)
+    if form.is_valid():
+        cd = form.cleaned_data
+        q = cd.get('q')
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(protocol__icontains=q))
+        if cd.get('status'):
+            qs = qs.filter(status=cd['status'])
+        if cd.get('priority'):
+            qs = qs.filter(priority=cd['priority'])
+        if cd.get('department'):
+            qs = qs.filter(department_id=int(cd['department']))
+        if cd.get('date_from'):
+            start = timezone.make_aware(datetime.combine(cd['date_from'], time.min))
+            qs = qs.filter(created_at__gte=start)
+        if cd.get('date_to'):
+            end = timezone.make_aware(datetime.combine(cd['date_to'], time.max))
+            qs = qs.filter(created_at__lte=end)
+        if cd.get('mine_only'):
+            qs = qs.filter(created_by=request.user)
+        page_size = int(cd.get('page_size') or 25)
+    else:
+        page_size = 25
+
+    qs = qs.order_by('-created_at')
+
+    paginator = Paginator(qs, page_size)
+    page_number = request.GET.get('page') or 1
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'dash/team.html', {
+        'filter_form': form,
+        'tickets': page_obj.object_list,
+        'page_obj': page_obj,
+        'paginator': paginator,
+    })
 
 @login_required
 def ticket_detail(request, pk: int):
