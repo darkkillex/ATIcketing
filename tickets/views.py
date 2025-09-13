@@ -6,42 +6,35 @@ from rest_framework.permissions import IsAuthenticated
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from django.http import HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
 from datetime import datetime, time
 from django.utils import timezone
 
-
-from .models import Ticket, Department, Attachment, Comment
+from .models import Ticket, Attachment, Comment
 from .serializers import TicketSerializer
 from .services import create_ticket_with_notification
 from .forms import NewTicketForm, CommentForm, AttachmentUploadForm, TicketFilterForm
+from .permissions import TicketPermissions, is_staffish
 from .emails import (
     send_ticket_status_changed,
     send_new_public_comment,
     send_new_attachments,
 )
 
-ADMIN_GROUPS = {'Admin', 'SuperUser', 'Coordinatore'}
-
-def user_in_groups(user, group_names):
-    return user.is_superuser or bool(set(g.name for g in user.groups.all()) & set(group_names))
-
-# -------- API REST (già presenti) --------
+# ---------------------- API ----------------------
 class TicketViewSet(viewsets.ModelViewSet):
     serializer_class = TicketSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TicketPermissions]
 
     def get_queryset(self):
         user = self.request.user
         qs = Ticket.objects.select_related('department', 'created_by', 'assignee').order_by('-created_at')
-        if user_in_groups(user, ADMIN_GROUPS):
-            return qs
-        return qs.filter(created_by=user)
+        return qs if is_staffish(user) else qs.filter(created_by=user)
 
+    # create custom per usare il service che invia la mail e assegna il protocollo
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -52,21 +45,16 @@ class TicketViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(out.data)
         return Response(out.data, status=status.HTTP_201_CREATED, headers=headers)
 
-# -------- Landing + Dashboard (già presenti) --------
+# ------------------- LANDING & DASHBOARD -------------------
 def landing(request):
     if not request.user.is_authenticated:
         return redirect('login')
-    if user_in_groups(request.user, ADMIN_GROUPS):
-        return redirect('dash_team')
-    return redirect('dash_operator')
+    return redirect('dash_team' if is_staffish(request.user) else 'dash_operator')
 
 @login_required
 def operator_dashboard(request):
-    # Base: solo i ticket dell'utente
     qs = Ticket.objects.select_related('department').filter(created_by=request.user)
 
-    # Filtri
-    from .forms import TicketFilterForm
     form = TicketFilterForm(request.GET or None, user=request.user, is_team=False)
     if form.is_valid():
         cd = form.cleaned_data
@@ -90,8 +78,6 @@ def operator_dashboard(request):
         page_size = 25
 
     qs = qs.order_by('-created_at')
-
-    # Paginazione
     paginator = Paginator(qs, page_size)
     page_number = request.GET.get('page') or 1
     page_obj = paginator.get_page(page_number)
@@ -105,12 +91,11 @@ def operator_dashboard(request):
 
 @login_required
 def team_dashboard(request):
-    if not user_in_groups(request.user, ADMIN_GROUPS):
+    if not is_staffish(request.user):
         return redirect('dash_operator')
 
     qs = Ticket.objects.select_related('department', 'created_by')
 
-    from .forms import TicketFilterForm
     form = TicketFilterForm(request.GET or None, user=request.user, is_team=True)
     if form.is_valid():
         cd = form.cleaned_data
@@ -136,7 +121,6 @@ def team_dashboard(request):
         page_size = 25
 
     qs = qs.order_by('-created_at')
-
     paginator = Paginator(qs, page_size)
     page_number = request.GET.get('page') or 1
     page_obj = paginator.get_page(page_number)
@@ -148,12 +132,11 @@ def team_dashboard(request):
         'paginator': paginator,
     })
 
+# ------------------- EXPORT CSV -------------------
 @login_required
 def operator_export_csv(request):
-    """Esporta in CSV i MIEI ticket, rispettando i filtri correnti della dashboard Operatore."""
     qs = Ticket.objects.select_related('department', 'created_by', 'assignee').filter(created_by=request.user)
 
-    # Applica gli stessi filtri della operator_dashboard
     form = TicketFilterForm(request.GET or None, user=request.user, is_team=False)
     if form.is_valid():
         cd = form.cleaned_data
@@ -173,45 +156,32 @@ def operator_export_csv(request):
             end = timezone.make_aware(datetime.combine(cd['date_to'], time.max))
             qs = qs.filter(created_at__lte=end)
 
-    qs = qs.order_by('-created_at')[:10000]  # safety cap
+    qs = qs.order_by('-created_at')[:10000]
 
-    # Response CSV (UTF-8 BOM + ;)
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="tickets_operator.csv"'
-    response.write('\ufeff')  # BOM per Excel
-
+    response.write('\ufeff')
     writer = csv.writer(response, delimiter=';')
     writer.writerow([
-        'Protocollo', 'Titolo', 'Comparto', 'Priorità', 'Stato',
-        'Creato da', 'Creato il', 'Assegnato a', 'Impatto', 'Urgenza',
-        'Location', 'Asset'
+        'Protocollo','Titolo','Comparto','Priorità','Stato',
+        'Creato da','Creato il','Assegnato a','Impatto','Urgenza','Location','Asset'
     ])
     for t in qs:
         writer.writerow([
-            t.protocol,
-            t.title,
-            t.department.code,
-            t.get_priority_display(),
-            t.get_status_display(),
-            getattr(t.created_by, 'username', ''),
-            t.created_at.strftime('%d/%m/%Y %H:%M'),
-            getattr(t.assignee, 'username', ''),
-            t.get_impact_display(),
-            t.get_urgency_display(),
-            t.location or '',
-            t.asset_code or '',
+            t.protocol, t.title, t.department.code, t.get_priority_display(), t.get_status_display(),
+            getattr(t.created_by, 'username', ''), t.created_at.strftime('%d/%m/%Y %H:%M'),
+            getattr(t.assignee, 'username', ''), t.get_impact_display(), t.get_urgency_display(),
+            t.location or '', t.asset_code or '',
         ])
     return response
 
 @login_required
 def team_export_csv(request):
-    """Esporta in CSV TUTTI i ticket (o 'Solo miei' se spuntato), rispettando i filtri correnti della dashboard Team."""
-    if not user_in_groups(request.user, ADMIN_GROUPS):
+    if not is_staffish(request.user):
         return redirect('dash_operator')
 
     qs = Ticket.objects.select_related('department', 'created_by', 'assignee')
 
-    # Applica gli stessi filtri della team_dashboard
     form = TicketFilterForm(request.GET or None, user=request.user, is_team=True)
     if form.is_valid():
         cd = form.cleaned_data
@@ -233,35 +203,26 @@ def team_export_csv(request):
         if cd.get('mine_only'):
             qs = qs.filter(created_by=request.user)
 
-    qs = qs.order_by('-created_at')[:10000]  # safety cap
+    qs = qs.order_by('-created_at')[:10000]
 
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="tickets_team.csv"'
     response.write('\ufeff')
-
     writer = csv.writer(response, delimiter=';')
     writer.writerow([
-        'Protocollo', 'Titolo', 'Comparto', 'Priorità', 'Stato',
-        'Creato da', 'Creato il', 'Assegnato a', 'Impatto', 'Urgenza',
-        'Location', 'Asset'
+        'Protocollo','Titolo','Comparto','Priorità','Stato',
+        'Creato da','Creato il','Assegnato a','Impatto','Urgenza','Location','Asset'
     ])
     for t in qs:
         writer.writerow([
-            t.protocol,
-            t.title,
-            t.department.code,
-            t.get_priority_display(),
-            t.get_status_display(),
-            getattr(t.created_by, 'username', ''),
-            t.created_at.strftime('%d/%m/%Y %H:%M'),
-            getattr(t.assignee, 'username', ''),
-            t.get_impact_display(),
-            t.get_urgency_display(),
-            t.location or '',
-            t.asset_code or '',
+            t.protocol, t.title, t.department.code, t.get_priority_display(), t.get_status_display(),
+            getattr(t.created_by, 'username', ''), t.created_at.strftime('%d/%m/%Y %H:%M'),
+            getattr(t.assignee, 'username', ''), t.get_impact_display(), t.get_urgency_display(),
+            t.location or '', t.asset_code or '',
         ])
     return response
 
+# ------------------- DETTAGLIO & CREAZIONE -------------------
 @login_required
 def ticket_detail(request, pk: int):
     ticket = get_object_or_404(
@@ -270,13 +231,10 @@ def ticket_detail(request, pk: int):
         pk=pk
     )
 
-    # Autorizzazione: creatore → ok; staff (Admin/SuperUser/Coordinatore) → ok
-    if not (ticket.created_by_id == request.user.id or user_in_groups(request.user, ADMIN_GROUPS)):
+    if not (ticket.created_by_id == request.user.id or is_staffish(request.user)):
         return HttpResponseForbidden("Non autorizzato")
 
-    can_change_status = user_in_groups(request.user, ADMIN_GROUPS)
-
-    # Form vuoti per GET
+    can_change_status = is_staffish(request.user)
     comment_form = CommentForm()
     attach_form = AttachmentUploadForm()
 
@@ -293,8 +251,7 @@ def ticket_detail(request, pk: int):
                     body=form.cleaned_data['body'],
                     is_internal=is_internal
                 )
-                # Notifica se pubblico
-                send_new_public_comment(c)
+                send_new_public_comment(c)  # solo se non interno
                 messages.success(request, "Commento aggiunto.")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
@@ -304,7 +261,7 @@ def ticket_detail(request, pk: int):
         elif action == 'add_attachments':
             form = AttachmentUploadForm(request.POST, request.FILES)
             if form.is_valid():
-                created = []  # accumula gli Attachment creati
+                created = []
                 for f in request.FILES.getlist('attachments'):
                     created.append(Attachment.objects.create(
                         ticket=ticket,
@@ -314,15 +271,12 @@ def ticket_detail(request, pk: int):
                         size=f.size,
                         uploaded_by=request.user,
                     ))
-                # invia email con la lista degli allegati creati
                 send_new_attachments(ticket, created, actor=request.user)
-
                 messages.success(request, "Allegati caricati.")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
                 attach_form = form
                 messages.error(request, "Verifica i file allegati.")
-
 
         elif action == 'change_status' and can_change_status:
             new_status = request.POST.get('status')
@@ -331,14 +285,12 @@ def ticket_detail(request, pk: int):
                 old_status_display = ticket.get_status_display()
                 ticket.status = new_status
                 ticket.save(update_fields=['status', 'updated_at'])
-                # Notifica email
                 send_ticket_status_changed(ticket, old_status_display, actor=request.user)
                 messages.success(request, f"Stato aggiornato a: {valid[new_status]}")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
                 messages.error(request, "Stato non valido.")
 
-    # Ordina timeline commenti
     comments = ticket.comments.select_related('author').order_by('created_at')
     attachments = ticket.attachments.order_by('-uploaded_at')
 
@@ -352,7 +304,6 @@ def ticket_detail(request, pk: int):
         'status_choices': Ticket.STATUS_CHOICES,
     })
 
-# -------- UI: Nuovo Ticket (+ allegati) --------
 @login_required
 def new_ticket(request):
     if request.method == 'POST':
@@ -362,7 +313,6 @@ def new_ticket(request):
             data['created_by'] = request.user
             ticket = create_ticket_with_notification(**data)
 
-            # Allegati
             files = request.FILES.getlist('attachments')
             for f in files:
                 Attachment.objects.create(
@@ -375,10 +325,7 @@ def new_ticket(request):
                 )
 
             messages.success(request, f"Ticket creato: {ticket.protocol}")
-            # Redireziona alla dashboard coerente con il ruolo
-            if user_in_groups(request.user, ADMIN_GROUPS):
-                return redirect('dash_team')
-            return redirect('dash_operator')
+            return redirect('dash_team' if is_staffish(request.user) else 'dash_operator')
         else:
             messages.error(request, "Correggi gli errori nel form.")
     else:
