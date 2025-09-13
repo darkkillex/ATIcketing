@@ -2,6 +2,7 @@ from django.db import models, transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.validators import MaxLengthValidator
+from django.conf import settings
 
 User = get_user_model()
 
@@ -137,3 +138,25 @@ class Attachment(models.Model):
 
     def __str__(self):
         return f"{self.original_name} ({self.size} B)"
+
+class AuditLog(models.Model):
+    class Action(models.TextChoices):
+        CREATED = "CREATED", "Creato"
+        STATUS_CHANGED = "STATUS_CHANGED", "Cambio stato"
+        COMMENT_ADDED = "COMMENT_ADDED", "Nuovo commento"
+        ATTACHMENT_ADDED = "ATTACHMENT_ADDED", "Nuovi allegati"
+        ASSIGNED = "ASSIGNED", "Assegnato"
+
+    ticket = models.ForeignKey('Ticket', related_name='audits', on_delete=models.CASCADE)
+    action = models.CharField(max_length=32, choices=Action.choices)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    note = models.TextField(blank=True, default="")
+    meta = models.JSONField(blank=True, null=True)  # dettagli (old/new, filename, ecc.)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        who = self.actor.username if self.actor else "system"
+        return f"[{self.created_at:%Y-%m-%d %H:%M}] {self.action} by {who}"

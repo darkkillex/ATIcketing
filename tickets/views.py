@@ -23,6 +23,7 @@ from .emails import (
     send_new_public_comment,
     send_new_attachments,
 )
+from .audit import log_status_change, log_comment, log_attachments
 
 # ---------------------- API ----------------------
 class TicketViewSet(viewsets.ModelViewSet):
@@ -227,20 +228,23 @@ def team_export_csv(request):
 def ticket_detail(request, pk: int):
     ticket = get_object_or_404(
         Ticket.objects.select_related('department', 'created_by', 'assignee')
-                      .prefetch_related('comments', 'attachments'),
+                      .prefetch_related('comments', 'attachments', 'audits'),
         pk=pk
     )
 
+    # Autorizzazione
     if not (ticket.created_by_id == request.user.id or is_staffish(request.user)):
         return HttpResponseForbidden("Non autorizzato")
 
     can_change_status = is_staffish(request.user)
+
     comment_form = CommentForm()
     attach_form = AttachmentUploadForm()
 
     if request.method == 'POST':
         action = request.POST.get('action')
 
+        # ---- Nuovo commento ----
         if action == 'add_comment':
             form = CommentForm(request.POST)
             if form.is_valid():
@@ -251,13 +255,15 @@ def ticket_detail(request, pk: int):
                     body=form.cleaned_data['body'],
                     is_internal=is_internal
                 )
-                send_new_public_comment(c)  # solo se non interno
+                # notifica solo se pubblico
+                send_new_public_comment(c)
                 messages.success(request, "Commento aggiunto.")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
                 comment_form = form
                 messages.error(request, "Correggi gli errori nel commento.")
 
+        # ---- Nuovi allegati ----
         elif action == 'add_attachments':
             form = AttachmentUploadForm(request.POST, request.FILES)
             if form.is_valid():
@@ -278,6 +284,7 @@ def ticket_detail(request, pk: int):
                 attach_form = form
                 messages.error(request, "Verifica i file allegati.")
 
+        # ---- Cambio stato (solo staff) ----
         elif action == 'change_status' and can_change_status:
             new_status = request.POST.get('status')
             valid = dict(Ticket.STATUS_CHOICES)
@@ -290,6 +297,8 @@ def ticket_detail(request, pk: int):
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
                 messages.error(request, "Stato non valido.")
+
+        # (nessun altro ramo usa new_status: fuori da qui non viene mai toccata)
 
     comments = ticket.comments.select_related('author').order_by('created_at')
     attachments = ticket.attachments.order_by('-uploaded_at')
@@ -332,3 +341,29 @@ def new_ticket(request):
         form = NewTicketForm()
 
     return render(request, 'tickets/new.html', {'form': form})
+
+
+@login_required
+def ticket_audit_csv(request, pk: int):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    if not (ticket.created_by_id == request.user.id or is_staffish(request.user)):
+        return HttpResponseForbidden("Non autorizzato")
+
+    audits = ticket.audits.select_related('actor').order_by('created_at')
+
+    resp = HttpResponse(content_type='text/csv; charset=utf-8')
+    resp['Content-Disposition'] = f'attachment; filename="audit_{ticket.protocol}.csv"'
+    resp.write('\ufeff')
+
+    w = csv.writer(resp, delimiter=';')
+    w.writerow(['Quando', 'Azione', 'Attore', 'Nota', 'Meta(JSON)'])
+    for a in audits:
+        w.writerow([
+            a.created_at.strftime('%d/%m/%Y %H:%M'),
+            a.get_action_display(),
+            getattr(a.actor, 'username', ''),
+            a.note or '',
+            (a.meta or {}),
+        ])
+    return resp
+
