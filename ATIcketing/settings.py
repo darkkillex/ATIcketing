@@ -17,10 +17,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
     'tickets',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -80,8 +83,21 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
-    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',   # per UI Django
+        'rest_framework.authentication.TokenAuthentication',     # per client esterni
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.getenv('DRF_THROTTLE_RATE_ANON', '60/min'),
+        'user': os.getenv('DRF_THROTTLE_RATE_USER', '600/min'),
+    },
 }
 
 LOGIN_URL = "/accounts/login/"
@@ -121,3 +137,23 @@ SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://127.0.0.1:8000")
 # Mittente di default (puoi personalizzarlo)
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ATIcketing <no-reply@local>")
 
+# --- CORS & CSRF ---
+# In DEV permettiamo tutte le origini; in PROD le limitiamo via env.
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    _cors = os.getenv('CORS_ALLOWED_ORIGINS', '')
+    CORS_ALLOWED_ORIGINS = [x.strip() for x in _cors.split(',') if x.strip()]
+
+# Se usi un frontend separato con cookie/SessionAuth su HTTPS, imposta anche i trusted origins CSRF.
+# Formato richiesto da Django: include schema (http/https), es: https://intranet.local
+_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+if _csrf:
+    CSRF_TRUSTED_ORIGINS = [x.strip() for x in _csrf.split(',') if x.strip()]
+
+# Se intendi usare cookie di sessione cross-site dal frontend (non necessario con TokenAuth):
+# CORS_ALLOW_CREDENTIALS = True
+# SESSION_COOKIE_SAMESITE = 'None'
+# CSRF_COOKIE_SAMESITE = 'None'
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
