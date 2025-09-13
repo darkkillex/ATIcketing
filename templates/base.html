@@ -4,38 +4,70 @@
   <meta charset="utf-8">
   <title>ATIcketing</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- Materialize CSS + Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; }
-    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #eee; padding: .6rem .4rem; text-align:left; }
-    .tag { display:inline-block; padding:.15rem .5rem; border:1px solid #ddd; border-radius:999px; font-size:.85rem; }
-    .btn { padding:.5rem .9rem; border:1px solid #333; border-radius:.5rem; text-decoration:none; }
-    .muted { color:#666; font-size:.9rem; }
-    .flash { padding:.6rem .8rem; margin:.4rem 0; border-radius:.4rem; }
-    .flash.success { background:#e8f6ec; border:1px solid #bfe2c7; }
-    .flash.error { background:#fdecea; border:1px solid #f5c2c0; }
+    nav { padding: 0 1rem; }
+    .brand-logo { font-weight: 600; }
+    .chip.small { height: 24px; line-height: 24px; }
+    .chip.small .material-icons { font-size: 18px; margin-right: 6px; }
+    .table-title { display:flex; align-items:center; gap:.5rem; margin:1rem 0 .5rem; }
+    .mt-2 { margin-top: 1.25rem; }
+    .mb-2 { margin-bottom: 1.25rem; }
+    .btn-flat.btn-flat-primary { color:#039be5; }
+    .container.narrow { max-width: 1080px; }
   </style>
 </head>
-<body>
-  <header>
-    <h1>ATIcketing</h1>
-    <nav>
-      {% if request.user.is_authenticated %}
-        <a class="btn" href="{% url 'ticket_new' %}">Nuovo Ticket</a>
-        &nbsp;&nbsp;
-        <span class="muted">Ciao, {{ request.user.username }}</span>
-        &nbsp;|&nbsp; <a class="btn" href="{% url 'logout' %}">Logout</a>
-      {% endif %}
-    </nav>
-  </header>
+<body class="grey lighten-5">
 
-  {% if messages %}
-    {% for m in messages %}
-      <div class="flash {% if m.tags %}{{ m.tags }}{% endif %}">{{ m }}</div>
-    {% endfor %}
-  {% endif %}
+  <nav class="blue darken-3">
+    <div class="nav-wrapper">
+      <a href="/" class="brand-logo">ATIcketing</a>
+      <ul id="nav-mobile" class="right hide-on-med-and-down">
+        {% if request.user.is_authenticated %}
+          <li><a href="{% url 'ticket_new' %}"><i class="material-icons left">add_circle</i>Nuovo Ticket</a></li>
+          <li><a href="{% url 'logout' %}"><i class="material-icons left">exit_to_app</i>Logout</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
 
-  {% block content %}{% endblock %}
+  <main class="container narrow">
+    <!-- Flash messages come toast -->
+    {% if messages %}
+      <div id="django-messages" style="display:none;">
+        {% for m in messages %}
+          <div data-text="{{ m|escape }}" data-tags="{{ m.tags|default:'' }}"></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Inizializza componenti Materialize
+      M.AutoInit();
+
+      // Toast per messaggi Django
+      const box = document.getElementById('django-messages');
+      if (box) {
+        box.querySelectorAll('div[data-text]').forEach(function(el) {
+          const text = el.getAttribute('data-text');
+          const tags = (el.getAttribute('data-tags') || '').toLowerCase();
+          let classes = 'blue-grey darken-1';
+          if (tags.includes('success')) classes = 'green darken-2';
+          if (tags.includes('error')) classes = 'red darken-2';
+          if (tags.includes('warning')) classes = 'orange darken-2';
+          M.toast({html: text, classes: classes, displayLength: 4000});
+        });
+      }
+    });
+  </script>
 </body>
 </html>

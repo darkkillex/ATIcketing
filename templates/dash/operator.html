@@ -1,28 +1,44 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>I miei ticket</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Protocollo</th>
-      <th>Titolo</th>
-      <th>Comparto</th>
-      <th>Priorità</th>
-      <th>Creato il</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for t in tickets %}
-    <tr>
-      <td><span class="tag">{{ t.protocol }}</span></td>
-      <td>{{ t.title }}</td>
-      <td>{{ t.department.code }}</td>
-      <td>{{ t.get_priority_display }}</td>
-      <td>{{ t.created_at|date:"Y-m-d H:i" }}</td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="5" class="muted">Nessun ticket creato da te.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="table-title">
+  <i class="material-icons blue-text text-darken-2">assignment</i>
+  <h5 class="blue-text text-darken-2" style="margin:0;">I miei ticket</h5>
+  <a href="{% url 'ticket_new' %}" class="btn waves-effect waves-light blue darken-3 right" style="margin-left:auto;">
+    <i class="material-icons left">add</i>Nuovo
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-content">
+    <table class="highlight responsive-table">
+      <thead>
+        <tr>
+          <th>Protocollo</th>
+          <th>Titolo</th>
+          <th>Comparto</th>
+          <th>Priorità</th>
+          <th>Creato il</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for t in tickets %}
+        <tr>
+          <td><span class="chip small">{{ t.protocol }}</span></td>
+          <td>{{ t.title }}</td>
+          <td><span class="chip">{{ t.department.code }}</span></td>
+          <td>
+            {% if t.priority == 'LOW' %}<span class="chip green lighten-2">Bassa</span>
+            {% elif t.priority == 'MED' %}<span class="chip amber lighten-2">Media</span>
+            {% elif t.priority == 'HIGH' %}<span class="chip deep-orange lighten-2">Alta</span>
+            {% else %}<span class="chip red lighten-2">Bloccante</span>{% endif %}
+          </td>
+          <td>{{ t.created_at|date:"d/m/Y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="grey-text">Nessun ticket creato da te.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

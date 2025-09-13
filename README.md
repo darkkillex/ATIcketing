@@ -40,6 +40,7 @@ python manage.py runserver 0.0.0.0:8000
 - Login: http://127.0.0.1:8000/ (smistamento a dashboard per ruolo)
 - Admin: http://127.0.0.1:8000/admin
 - API: http://127.0.0.1:8000/api/
+- MailHog: http://127.0.0.1:8025
 
 ## Flusso ruoli
 - Gruppi: **Admin**, **SuperUser**, **Coordinatore**, **Operatore** (creati dal seed).
@@ -50,3 +51,26 @@ python manage.py runserver 0.0.0.0:8000
 ## Note
 - Email: con `MAILHOG` configurato in `.env.docker`, tutte le email vanno su http://127.0.0.1:8025
 - Protocollo: `ICT|WH|SP-YYYY-WW-NNNN` con progressivo **per settimana e comparto** (transazione con row-lock PostgreSQL).
+
+## Riavvio pulito con Docker
+```bash
+# dopo aver fatto
+docker compose down
+# nella cartella ATIcketing,
+# Avvia DB e MailHog
+docker compose up -d --build db mailhog
+#verifica che DB sia healthy
+docker compose ps
+# Migrazioni + seed con container “one-off”. 
+# Usa questi solo se parti da DB vuoto o se non li avevi già fatti.
+docker compose run --rm web python manage.py migrate
+docker compose run --rm web python manage.py createsuperuser
+docker compose run --rm web python manage.py seed_initial
+# Avvio servizio web
+docker compose up -d web
+# Check rapido
+docker compose ps
+docker compose logs --tail=80 web
+
+# Se fai modifiche al codice
+docker compose restart web

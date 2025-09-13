@@ -1,30 +1,43 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Ticket di tutti i reparti</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Protocollo</th>
-      <th>Titolo</th>
-      <th>Comparto</th>
-      <th>Priorità</th>
-      <th>Creato da</th>
-      <th>Creato il</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for t in tickets %}
-    <tr>
-      <td><span class="tag">{{ t.protocol }}</span></td>
-      <td>{{ t.title }}</td>
-      <td>{{ t.department.code }}</td>
-      <td>{{ t.get_priority_display }}</td>
-      <td>{{ t.created_by.username }}</td>
-      <td>{{ t.created_at|date:"Y-m-d H:i" }}</td>
-    </tr>
-  {% empty %}
-    <tr><td colspan="6" class="muted">Nessun ticket presente.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="table-title">
+  <i class="material-icons blue-text text-darken-2">dashboard</i>
+  <h5 class="blue-text text-darken-2" style="margin:0;">Ticket di tutti i reparti</h5>
+</div>
+
+<div class="card">
+  <div class="card-content">
+    <table class="highlight responsive-table">
+      <thead>
+        <tr>
+          <th>Protocollo</th>
+          <th>Titolo</th>
+          <th>Comparto</th>
+          <th>Priorità</th>
+          <th>Creato da</th>
+          <th>Creato il</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for t in tickets %}
+        <tr>
+          <td><span class="chip small">{{ t.protocol }}</span></td>
+          <td>{{ t.title }}</td>
+          <td><span class="chip">{{ t.department.code }}</span></td>
+          <td>
+            {% if t.priority == 'LOW' %}<span class="chip green lighten-2">Bassa</span>
+            {% elif t.priority == 'MED' %}<span class="chip amber lighten-2">Media</span>
+            {% elif t.priority == 'HIGH' %}<span class="chip deep-orange lighten-2">Alta</span>
+            {% else %}<span class="chip red lighten-2">Bloccante</span>{% endif %}
+          </td>
+          <td>{{ t.created_by.username }}</td>
+          <td>{{ t.created_at|date:"d/m/Y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="grey-text">Nessun ticket presente.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
