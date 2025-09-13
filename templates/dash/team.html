@@ -21,8 +21,8 @@
       <tbody>
       {% for t in tickets %}
         <tr>
-          <td><span class="chip small">{{ t.protocol }}</span></td>
-          <td>{{ t.title }}</td>
+          <td><a class="chip small" href="{% url 'ticket_detail' t.pk %}">{{ t.protocol }}</a></td>
+          <td><a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a></td>
           <td><span class="chip">{{ t.department.code }}</span></td>
           <td>
             {% if t.priority == 'LOW' %}<span class="chip green lighten-2">Bassa</span>
