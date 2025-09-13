@@ -103,3 +103,14 @@ if os.getenv("EMAIL_HOST"):
     EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# --- Media (allegati) ---
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Limiti per allegati (override via env se vuoi)
+ATTACHMENTS_MAX_SIZE_MB = int(os.getenv('ATTACHMENTS_MAX_SIZE_MB', '15'))  # 15 MB
+ATTACHMENTS_ALLOWED_EXTENSIONS = os.getenv(
+    'ATTACHMENTS_ALLOWED_EXTENSIONS',
+    'pdf,jpg,jpeg,png,xlsx,docx,txt'
+).split(',')

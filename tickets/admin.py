@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Department, Counter, Ticket, Comment
+from .models import Department, Counter, Ticket, Comment, Attachment
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
@@ -23,3 +23,9 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ('ticket', 'author', 'created_at', 'is_internal')
     search_fields = ('ticket__protocol', 'author__username', 'body')
     list_filter = ('is_internal', 'created_at')
+
+@admin.register(Attachment)
+class AttachmentAdmin(admin.ModelAdmin):
+    list_display = ('ticket', 'original_name', 'mime_type', 'size', 'uploaded_by', 'uploaded_at')
+    search_fields = ('original_name', 'ticket__protocol', 'uploaded_by__username')
+    list_filter = ('mime_type', 'uploaded_at')

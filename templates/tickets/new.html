@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Nuovo Ticket</h2>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <p>
+    <label for="id_title">Titolo</label><br>
+    {{ form.title }}
+    {% if form.title.errors %}<div style="color:#c00">{{ form.title.errors }}</div>{% endif %}
+  </p>
+
+  <p>
+    <label for="id_description">Descrizione</label><br>
+    {{ form.description }}
+    {% if form.description.errors %}<div style="color:#c00">{{ form.description.errors }}</div>{% endif %}
+  </p>
+
+  <div style="display:grid; grid-template-columns: repeat(2, minmax(250px, 1fr)); gap: 1rem;">
+    <p>
+      <label>Comparto</label><br>
+      {{ form.department }}
+      {% if form.department.errors %}<div style="color:#c00">{{ form.department.errors }}</div>{% endif %}
+    </p>
+    <p>
+      <label>Priorità</label><br>
+      {{ form.priority }}
+      {% if form.priority.errors %}<div style="color:#c00">{{ form.priority.errors }}</div>{% endif %}
+    </p>
+    <p>
+      <label>Impatto</label><br>
+      {{ form.impact }}
+      {% if form.impact.errors %}<div style="color:#c00">{{ form.impact.errors }}</div>{% endif %}
+    </p>
+    <p>
+      <label>Urgenza</label><br>
+      {{ form.urgency }}
+      {% if form.urgency.errors %}<div style="color:#c00">{{ form.urgency.errors }}</div>{% endif %}
+    </p>
+    <p>
+      <label>Canale</label><br>
+      {{ form.source_channel }}
+      {% if form.source_channel.errors %}<div style="color:#c00">{{ form.source_channel.errors }}</div>{% endif %}
+    </p>
+    <p>
+      <label>Localizzazione</label><br>
+      {{ form.location }}
+      {% if form.location.errors %}<div style="color:#c00">{{ form.location.errors }}</div>{% endif %}
+    </p>
+    <p>
+      <label>Asset</label><br>
+      {{ form.asset_code }}
+      {% if form.asset_code.errors %}<div style="color:#c00">{{ form.asset_code.errors }}</div>{% endif %}
+    </p>
+  </div>
+
+  <p>
+    <label>Allegati (PDF/JPG/PNG/XLSX/DOCX/TXT, max {{ ATTACHMENTS_MAX_SIZE_MB }}MB ciascuno)</label><br>
+    {{ form.attachments }}
+    {% if form.attachments.errors %}<div style="color:#c00">{{ form.attachments.errors }}</div>{% endif %}
+  </p>
+
+  <button class="btn" type="submit">Crea Ticket</button>
+</form>
+{% endblock %}
