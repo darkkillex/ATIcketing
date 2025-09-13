@@ -1,0 +1,9 @@
+<h3>Nuovo ticket</h3>
+<p><b>Protocollo:</b> {{ ticket.protocol }}<br>
+<b>Comparto:</b> {{ ticket.department.code }}<br>
+<b>Priorità:</b> {{ ticket.get_priority_display }}<br>
+<b>Creato da:</b> {{ ticket.created_by.username }}<br>
+<b>Data/Ora:</b> {{ ticket.created_at|date:"d/m/Y H:i" }}</p>
+<p><b>Titolo:</b> {{ ticket.title }}</p>
+<p><b>Descrizione:</b><br>{{ ticket.description|linebreaksbr }}</p>
+<p><a href="{{ base_url }}/tickets/{{ ticket.id }}/">Apri il ticket</a></p>

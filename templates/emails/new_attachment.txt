@@ -1,0 +1,8 @@
+Nuovi allegati su {{ ticket.protocol }} ({{ ticket.title }})
+
+Caricati da: {{ actor.username }} il {{ now|date:"d/m/Y H:i" }}
+
+{% for a in attachments %}- {{ a.original_name }} ({{ a.size }} B)
+{% endfor %}
+
+Apri il ticket: {{ base_url }}/tickets/{{ ticket.id }}/

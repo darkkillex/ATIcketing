@@ -1,0 +1,1 @@
+[{{ ticket.protocol }}] Nuovo allegato caricato

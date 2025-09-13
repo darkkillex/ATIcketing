@@ -1,0 +1,10 @@
+Comparto: {{ ticket.department.code }}
+Protocollo: {{ ticket.protocol }}
+Priorità: {{ ticket.get_priority_display }}
+Creato da: {{ ticket.created_by.username }}
+Data/Ora: {{ ticket.created_at|date:"d/m/Y H:i" }}
+
+Descrizione:
+{{ ticket.description }}
+
+Apri il ticket: {{ base_url }}/tickets/{{ ticket.id }}/

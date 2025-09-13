@@ -114,3 +114,10 @@ ATTACHMENTS_ALLOWED_EXTENSIONS = os.getenv(
     'ATTACHMENTS_ALLOWED_EXTENSIONS',
     'pdf,jpg,jpeg,png,xlsx,docx,txt'
 ).split(',')
+
+# URL base per link nelle email
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://127.0.0.1:8000")
+
+# Mittente di default (puoi personalizzarlo)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ATIcketing <no-reply@local>")
+

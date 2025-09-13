@@ -19,6 +19,11 @@ from .models import Ticket, Department, Attachment, Comment
 from .serializers import TicketSerializer
 from .services import create_ticket_with_notification
 from .forms import NewTicketForm, CommentForm, AttachmentUploadForm, TicketFilterForm
+from .emails import (
+    send_ticket_status_changed,
+    send_new_public_comment,
+    send_new_attachments,
+)
 
 ADMIN_GROUPS = {'Admin', 'SuperUser', 'Coordinatore'}
 
@@ -282,12 +287,14 @@ def ticket_detail(request, pk: int):
             form = CommentForm(request.POST)
             if form.is_valid():
                 is_internal = form.cleaned_data.get('is_internal') if can_change_status else False
-                Comment.objects.create(
+                c = Comment.objects.create(
                     ticket=ticket,
                     author=request.user,
                     body=form.cleaned_data['body'],
                     is_internal=is_internal
                 )
+                # Notifica se pubblico
+                send_new_public_comment(c)
                 messages.success(request, "Commento aggiunto.")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
@@ -297,27 +304,35 @@ def ticket_detail(request, pk: int):
         elif action == 'add_attachments':
             form = AttachmentUploadForm(request.POST, request.FILES)
             if form.is_valid():
+                created = []  # accumula gli Attachment creati
                 for f in request.FILES.getlist('attachments'):
-                    Attachment.objects.create(
+                    created.append(Attachment.objects.create(
                         ticket=ticket,
                         file=f,
                         original_name=f.name,
                         mime_type=getattr(f, 'content_type', '') or '',
                         size=f.size,
                         uploaded_by=request.user,
-                    )
+                    ))
+                # invia email con la lista degli allegati creati
+                send_new_attachments(ticket, created, actor=request.user)
+
                 messages.success(request, "Allegati caricati.")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
                 attach_form = form
                 messages.error(request, "Verifica i file allegati.")
 
+
         elif action == 'change_status' and can_change_status:
             new_status = request.POST.get('status')
             valid = dict(Ticket.STATUS_CHOICES)
             if new_status in valid:
+                old_status_display = ticket.get_status_display()
                 ticket.status = new_status
                 ticket.save(update_fields=['status', 'updated_at'])
+                # Notifica email
+                send_ticket_status_changed(ticket, old_status_display, actor=request.user)
                 messages.success(request, f"Stato aggiornato a: {valid[new_status]}")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:

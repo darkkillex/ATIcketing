@@ -1,0 +1,5 @@
+<p>Il ticket <b>{{ ticket.protocol }}</b> ha cambiato stato:</p>
+<p><b>{{ old_status_display }}</b> → <b>{{ ticket.get_status_display }}</b></p>
+<p><b>Titolo:</b> {{ ticket.title }}<br>
+<b>Aggiornato da:</b> {{ actor.username }} il {{ ticket.updated_at|date:"d/m/Y H:i" }}</p>
+<p><a href="{{ base_url }}/tickets/{{ ticket.id }}/">Apri il ticket</a></p>

@@ -1,0 +1,5 @@
+<p>Nuovo commento sul ticket <b>{{ ticket.protocol }}</b> ({{ ticket.title }})</p>
+<p><b>Autore:</b> {{ comment.author.username }}<br>
+<b>Data/Ora:</b> {{ comment.created_at|date:"d/m/Y H:i" }}</p>
+<blockquote>{{ comment.body|linebreaksbr }}</blockquote>
+<p><a href="{{ base_url }}/tickets/{{ ticket.id }}/">Apri il ticket</a></p>

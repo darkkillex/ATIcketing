@@ -1,0 +1,5 @@
+Il ticket {{ ticket.protocol }} è passato da "{{ old_status_display }}" a "{{ ticket.get_status_display }}".
+Titolo: {{ ticket.title }}
+Aggiornato da: {{ actor.username }} il {{ ticket.updated_at|date:"d/m/Y H:i" }}
+
+Apri il ticket: {{ base_url }}/tickets/{{ ticket.id }}/

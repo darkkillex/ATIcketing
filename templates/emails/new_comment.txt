@@ -1,0 +1,8 @@
+Nuovo commento sul ticket {{ ticket.protocol }} ({{ ticket.title }})
+
+Autore: {{ comment.author.username }}
+Data/Ora: {{ comment.created_at|date:"d/m/Y H:i" }}
+
+{{ comment.body }}
+
+Apri il ticket: {{ base_url }}/tickets/{{ ticket.id }}/

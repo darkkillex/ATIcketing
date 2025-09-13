@@ -1,0 +1,6 @@
+<p>Nuovi allegati su <b>{{ ticket.protocol }}</b> ({{ ticket.title }})</p>
+<p><b>Caricati da:</b> {{ actor.username }} il {{ now|date:"d/m/Y H:i" }}</p>
+<ul>
+  {% for a in attachments %}<li>{{ a.original_name }} ({{ a.size }} B)</li>{% endfor %}
+</ul>
+<p><a href="{{ base_url }}/tickets/{{ ticket.id }}/">Apri il ticket</a></p>
