@@ -21,30 +21,27 @@
         .btn-flat.btn-flat-primary { color:#039be5; }
         .container.narrow { max-width: 1080px; }
 
-        /* Navbar: rendi il form logout “inline” e il bottone come un link */
-        nav .nav-wrapper form { display: inline; margin: 0; }
+        /* Navbar: form logout inline e stile "link" */
+        nav .nav-wrapper form { display:inline; margin:0; }
         nav .nav-wrapper .btn-flat {
-          color: #fff;            /* testo bianco su navbar scura */
-          height: 64px;           /* altezza tipica navbar desktop */
-          line-height: 64px;
-          padding: 0 16px;
+          color:#fff;
+          height:64px;
+          line-height:64px;
+          padding:0 16px;
         }
-        nav .nav-wrapper .btn-flat:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-        nav .nav-wrapper .btn-flat .material-icons {
-          line-height: inherit;
-          vertical-align: middle;
-        }
+        nav .nav-wrapper .btn-flat:hover { background:rgba(255,255,255,.1); }
+        nav .nav-wrapper .btn-flat .material-icons { line-height:inherit; vertical-align:middle; }
 
         /* Mobile: navbar un filo più bassa */
         @media (max-width: 992px) {
-          nav .nav-wrapper .btn-flat {
-            height: 56px;
-            line-height: 56px;
-          }
+          nav .nav-wrapper .btn-flat { height:56px; line-height:56px; }
         }
+
+        /* Tabelle: migliora scrolling orizzontale su mobile */
+        .responsive-table { overflow-x:auto; }
+        .responsive-table table { min-width: 720px; }
     </style>
+
 
 </head>
 <body class="grey lighten-5">
@@ -52,7 +49,14 @@
 <nav class="blue darken-3">
     <div class="nav-wrapper">
         <a href="/" class="brand-logo">ATIcketing</a>
-        <ul id="nav-mobile" class="right hide-on-med-and-down">
+
+        {# Trigger hamburger: visibile solo su mobile/tablet #}
+        <a href="#" data-target="mobile-nav" class="sidenav-trigger hide-on-large-only" aria-label="Apri menu">
+            <i class="material-icons">menu</i>
+        </a>
+
+        {# Menu desktop #}
+        <ul id="nav-desktop" class="right hide-on-med-and-down">
             {% if request.user.is_authenticated %}
             <li>
                 <a href="{% url 'ticket_new' %}">
@@ -71,9 +75,29 @@
             <li><a href="{% url 'login' %}">Accedi</a></li>
             {% endif %}
         </ul>
-
     </div>
 </nav>
+
+{# Menu mobile #}
+<ul class="sidenav" id="mobile-nav">
+    {% if request.user.is_authenticated %}
+    <li><a href="{% url 'landing' %}"><i class="material-icons left">home</i>Dashboard</a></li>
+    <li><a href="{% url 'ticket_new' %}"><i class="material-icons left">add_circle</i>Nuovo Ticket</a></li>
+    <li>
+        <div class="divider"></div>
+    </li>
+    <li>
+        <form method="post" action="{% url 'logout' %}" style="margin:0; padding:0 16px;">
+            {% csrf_token %}
+            <button type="submit" class="btn-flat" style="width:100%; text-align:left;">
+                <i class="material-icons left">exit_to_app</i>Logout
+            </button>
+        </form>
+    </li>
+    {% else %}
+    <li><a href="{% url 'login' %}"><i class="material-icons left">login</i>Accedi</a></li>
+    {% endif %}
+</ul>
 
 <main class="container narrow">
     <!-- Flash messages come toast -->
@@ -93,6 +117,14 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Inizializza componenti Materialize
       M.AutoInit();
+
+      // Forza label "attive" per tutti gli <input type="date">
+      document.querySelectorAll('input[type="date"]').forEach(function(inp){
+        const id = inp.id;
+        if (!id) return;
+        const lbl = document.querySelector('label[for="'+id+'"]');
+        if (lbl) lbl.classList.add('active');
+      });
 
       // Toast per messaggi Django
       const box = document.getElementById('django-messages');

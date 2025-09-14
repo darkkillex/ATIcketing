@@ -30,6 +30,40 @@ class NewTicketForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 6}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields['title'].widget.attrs.update({
+            'class': 'validate',
+            'placeholder': 'Titolo breve',
+            'autocomplete': 'off',
+        })
+        self.fields['description'].widget.attrs.update({
+            'class': 'materialize-textarea',
+            'placeholder': 'Descrivi il problema / richiesta…',
+            'rows': 4,
+        })
+
+        for name in ('department', 'priority', 'impact', 'urgency', 'source_channel'):
+            if name in self.fields:
+                self.fields[name].widget.attrs.update({'class': 'browser-default'})
+
+        if 'location' in self.fields:
+            self.fields['location'].widget.attrs.update({
+                'class': 'validate', 'placeholder': 'es. Ufficio 2B', 'autocomplete': 'off',
+            })
+        if 'asset_code' in self.fields:
+            self.fields['asset_code'].widget.attrs.update({
+                'class': 'validate', 'placeholder': 'es. PC-123', 'autocomplete': 'off',
+            })
+
+        try:
+            accept = ",".join(f".{ext}" for ext in ALLOWED_EXTS)
+            self.fields['attachments'].widget.attrs.update({'accept': accept})
+        except Exception:
+            pass
+
+
     def clean_attachments(self):
         files = self.files.getlist('attachments')
         errors = []
@@ -62,11 +96,28 @@ class CommentForm(forms.Form):
         required=False
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['body'].widget.attrs.update({
+            'class': 'materialize-textarea',
+            'placeholder': 'Scrivi un commento…',
+            'rows': 4,
+        })
+
+
 class AttachmentUploadForm(forms.Form):
     attachments = forms.FileField(
         required=True,
         widget=MultiFileInput(attrs={'multiple': True})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            accept = ",".join(f".{ext}" for ext in ALLOWED_EXTS)
+            self.fields['attachments'].widget.attrs.update({'accept': accept})
+        except Exception:
+            pass
 
     def clean_attachments(self):
         files = self.files.getlist('attachments')
@@ -121,3 +172,13 @@ class TicketFilterForm(forms.Form):
         # L'operatore non vede "Solo miei"
         if not is_team:
             self.fields.pop('mine_only', None)
+        if 'q' in self.fields:
+            self.fields['q'].widget.attrs.update({
+                'class': 'validate',
+                'placeholder': 'Cerca in titolo/descrizione/protocollo…',
+                'autocomplete': 'off',
+            })
+        for name in ('date_from', 'date_to'):
+            if name in self.fields:
+                self.fields[name].widget.attrs.update({'class': 'validate'})
+

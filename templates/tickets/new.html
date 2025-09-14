@@ -1,97 +1,116 @@
 {% extends 'base.html' %}
 {% load form_extras %}
-
 {% block content %}
 <div class="row mt-2">
   <div class="col s12 m10 l9">
     <div class="card">
       <div class="card-content">
-        <span class="card-title"><i class="material-icons left">add_circle</i>Nuovo Ticket</span>
+        <span class="card-title">
+          <i class="material-icons left">add_circle</i>Nuovo Ticket
+        </span>
 
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" class="row" novalidate>
           {% csrf_token %}
+          {{ form.non_field_errors }}
 
-          <div class="row">
-            <div class="input-field col s12">
-              <input id="id_title" name="title" type="text" required>
-              <label for="id_title">Titolo</label>
-              {% if form.title.errors %}<span class="red-text">{{ form.title.errors }}</span>{% endif %}
-            </div>
+          <!-- Titolo -->
+          <div class="input-field col s12">
+            {{ form.title.label_tag }}
+            {{ form.title }}
+            {% for e in form.title.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
 
-          <div class="row">
-            <div class="input-field col s12">
-              <textarea id="id_description" name="description" class="materialize-textarea" rows="6" required></textarea>
-              <label for="id_description">Descrizione</label>
-              {% if form.description.errors %}<span class="red-text">{{ form.description.errors }}</span>{% endif %}
-            </div>
+          <!-- Descrizione -->
+          <div class="input-field col s12">
+            {{ form.description.label_tag }}
+            {{ form.description }}
+            {% for e in form.description.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
 
-          <div class="row">
-            <div class="input-field col s12 m6">
-              {{ form.department|add_class:"browser-default" }}
-              <label class="active">Comparto</label>
-              {% if form.department.errors %}<span class="red-text">{{ form.department.errors }}</span>{% endif %}
-            </div>
-            <div class="input-field col s12 m6">
-              {{ form.priority|add_class:"browser-default" }}
-              <label class="active">Priorità</label>
-              {% if form.priority.errors %}<span class="red-text">{{ form.priority.errors }}</span>{% endif %}
-            </div>
-            <div class="input-field col s12 m6">
-              {{ form.impact|add_class:"browser-default" }}
-              <label class="active">Impatto</label>
-              {% if form.impact.errors %}<span class="red-text">{{ form.impact.errors }}</span>{% endif %}
-            </div>
-            <div class="input-field col s12 m6">
-              {{ form.urgency|add_class:"browser-default" }}
-              <label class="active">Urgenza</label>
-              {% if form.urgency.errors %}<span class="red-text">{{ form.urgency.errors }}</span>{% endif %}
-            </div>
-            <div class="input-field col s12 m6">
-              {{ form.source_channel|add_class:"browser-default" }}
-              <label class="active">Canale</label>
-              {% if form.source_channel.errors %}<span class="red-text">{{ form.source_channel.errors }}</span>{% endif %}
-            </div>
-            <div class="input-field col s12 m6">
-              <input id="id_location" name="location" type="text">
-              <label for="id_location">Localizzazione</label>
-              {% if form.location.errors %}<span class="red-text">{{ form.location.errors }}</span>{% endif %}
-            </div>
-            <div class="input-field col s12 m6">
-              <input id="id_asset_code" name="asset_code" type="text">
-              <label for="id_asset_code">Asset</label>
-              {% if form.asset_code.errors %}<span class="red-text">{{ form.asset_code.errors }}</span>{% endif %}
-            </div>
+          <!-- Selezioni principali (2 colonne su desktop) -->
+          <div class="input-field col s12 m6">
+            {{ form.department|add_class:"browser-default" }}
+            <label class="active">{{ form.department.label }}</label>
+            {% for e in form.department.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
 
-          <div class="row">
-            <div class="file-field input-field col s12">
+          <div class="input-field col s12 m6">
+            {{ form.priority|add_class:"browser-default" }}
+            <label class="active">{{ form.priority.label }}</label>
+            {% for e in form.priority.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+
+          <div class="input-field col s12 m6">
+            {{ form.impact|add_class:"browser-default" }}
+            <label class="active">{{ form.impact.label }}</label>
+            {% for e in form.impact.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+
+          <div class="input-field col s12 m6">
+            {{ form.urgency|add_class:"browser-default" }}
+            <label class="active">{{ form.urgency.label }}</label>
+            {% for e in form.urgency.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+
+          {% if form.source_channel %}
+          <div class="input-field col s12 m6">
+            {{ form.source_channel|add_class:"browser-default" }}
+            <label class="active">{{ form.source_channel.label }}</label>
+            {% for e in form.source_channel.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Campi testo aggiuntivi -->
+          <div class="input-field col s12 m6">
+            {{ form.location.label_tag }}
+            {{ form.location }}
+            {% for e in form.location.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+
+          <div class="input-field col s12 m6">
+            {{ form.asset_code.label_tag }}
+            {{ form.asset_code }}
+            {% for e in form.asset_code.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+
+          <!-- Allegati -->
+          <div class="col s12 m6">
+            <div class="file-field input-field">
               <div class="btn blue darken-3">
                 <span><i class="material-icons left">attach_file</i>Allega</span>
-                <!-- input nativo multiplo con nome attachments -->
+                <!-- input nativo multiplo con nome 'attachments' -->
                 <input type="file" id="id_attachments" name="attachments" multiple>
               </div>
               <div class="file-path-wrapper">
                 <input class="file-path validate" type="text" placeholder="PDF/JPG/PNG/XLSX/DOCX/TXT, max 15MB ciascuno">
               </div>
-              {% if form.attachments.errors %}<span class="red-text">{{ form.attachments.errors }}</span>{% endif %}
+            </div>
+            {% for e in form.attachments.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+            <small class="grey-text">
+              Formati consentiti: pdf, jpg, jpeg, png, xlsx, docx, txt.
+            </small>
+          </div>
+
+          <!-- Azioni -->
+          <div class="col s12">
+            <div class="row" style="margin-bottom:0;">
+              <div class="col s12 m6">
+                <a href="{% url 'landing' %}" class="btn-flat btn-flat-primary">
+                  <i class="material-icons left">arrow_back</i>Annulla
+                </a>
+              </div>
+              <div class="col s12 m6 right-align">
+                <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
+                  Crea Ticket <i class="material-icons right">send</i>
+                </button>
+              </div>
             </div>
           </div>
 
-          <div class="right-align">
-            <a href="/" class="btn-flat btn-flat-primary">Annulla</a>
-            <button class="btn waves-effect waves-light blue darken-3" type="submit">
-              Crea Ticket <i class="material-icons right">send</i>
-            </button>
-          </div>
         </form>
 
       </div>
     </div>
   </div>
 </div>
-
-<!-- filtro per add_class (piccolo helper) -->
-{% load static %}
 {% endblock %}

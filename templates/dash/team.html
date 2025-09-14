@@ -4,123 +4,143 @@
 {% block content %}
 
 <div class="table-title">
-  <i class="material-icons blue-text text-darken-2">dashboard</i>
-  <h5 class="blue-text text-darken-2" style="margin:0;">Ticket di tutti i reparti</h5>
+    <i class="material-icons blue-text text-darken-2">dashboard</i>
+    <h5 class="blue-text text-darken-2" style="margin:0;">Ticket di tutti i reparti</h5>
 </div>
 
 <!-- FILTRI -->
 <div class="card">
-  <div class="card-content">
-    <form method="get">
-      <div class="row">
-        <div class="input-field col s12 m6 l4">
-          <input type="text" name="q" id="id_q" value="{{ filter_form.q.value|default_if_none:'' }}">
-          <label for="id_q" class="active">Cerca (titolo/descrizione/protocollo)</label>
-        </div>
+    <div class="card-content">
+        <form method="get" class="row" novalidate>
+            <!-- Ricerca testo -->
+            <div class="input-field col s12 m6 l3">
+                {{ filter_form.q.label_tag }}{{ filter_form.q }}
+            </div>
 
-        <div class="input-field col s12 m6 l2">
-          {{ filter_form.status }}
-          <label class="active">Stato</label>
-        </div>
+            <!-- Select (class=browser-default già impostata in forms.py) -->
+            <div class="col s12 m6 l3">
+                <label class="active">{{ filter_form.status.label }}</label>
+                {{ filter_form.status }}
+            </div>
+            <div class="col s12 m6 l3">
+                <label class="active">{{ filter_form.priority.label }}</label>
+                {{ filter_form.priority }}
+            </div>
+            <div class="col s12 m6 l3">
+                <label class="active">{{ filter_form.department.label }}</label>
+                {{ filter_form.department }}
+            </div>
 
-        <div class="input-field col s12 m6 l2">
-          {{ filter_form.priority }}
-          <label class="active">Priorità</label>
-        </div>
+            <!-- Date -->
+            <div class="input-field col s12 m6 l3">
+                {{ filter_form.date_from }}
+                <label for="{{ filter_form.date_from.id_for_label }}" class="active">Dal</label>
+            </div>
+            <div class="input-field col s12 m6 l3">
+                {{ filter_form.date_to }}
+                <label for="{{ filter_form.date_to.id_for_label }}" class="active">Al</label>
+            </div>
 
-        <div class="input-field col s12 m6 l2">
-          {{ filter_form.department }}
-          <label class="active">Comparto</label>
-        </div>
+            <!-- Page size -->
+            <div class="col s12 m6 l3">
+                <label class="active">{{ filter_form.page_size.label }}</label>
+                {{ filter_form.page_size }}
+            </div>
 
-        <div class="input-field col s6 m3 l2">
-          {{ filter_form.date_from }}
-          <label class="active">Dal</label>
-        </div>
-        <div class="input-field col s6 m3 l2">
-          {{ filter_form.date_to }}
-          <label class="active">Al</label>
-        </div>
+            <!-- Solo miei (solo per team) -->
+            {% if filter_form.mine_only %}
+            <div class="col s12 m6 l3" style="margin-top:20px;">
+                <label>
+                    {{ filter_form.mine_only }} <span>Solo miei</span>
+                </label>
+            </div>
+            {% endif %}
 
-        <div class="input-field col s6 m3 l2">
-          {{ filter_form.page_size }}
-          <label class="active">Per pagina</label>
-        </div>
-
-        <div class="col s12 m6 l2" style="margin-top: 20px;">
-          <label>
-            <input type="checkbox" name="mine_only" {% if filter_form.mine_only.value %}checked{% endif %}>
-            <span>Solo miei</span>
-          </label>
-        </div>
-
-        <div class="input-field col s12 m12 l4 right-align">
-          <a class="btn-flat" href="."><i class="material-icons left">refresh</i>Reset</a>
-          <a class="btn grey darken-2" href="{% url 'team_export_csv' %}{% url_replace %}">
-            <i class="material-icons left">file_download</i>CSV
-          </a>
-          <button class="btn waves-effect waves-light blue darken-3" type="submit">
-            <i class="material-icons left">filter_list</i>Filtra
-          </button>
-        </div>
-      </div>
-    </form>
-  </div>
+            <!-- Azioni -->
+            <div class="col s12 right-align">
+                <a class="btn-flat" href="."><i class="material-icons left">refresh</i>Reset</a>
+                <a class="btn grey darken-2" href="{% url 'team_export_csv' %}{% url_replace %}">
+                    <i class="material-icons left">file_download</i>CSV
+                </a>
+                <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
+                    <i class="material-icons left">filter_list</i>Filtra
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
 
 <!-- TABELLA -->
 <div class="card">
-  <div class="card-content">
-    <table class="highlight responsive-table">
-      <thead>
-        <tr>
-          <th>Protocollo</th>
-          <th>Titolo</th>
-          <th>Comparto</th>
-          <th>Priorità</th>
-          <th>Creato da</th>
-          <th>Creato il</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for t in tickets %}
-        <tr>
-          <td><a class="chip small" href="{% url 'ticket_detail' t.pk %}">{{ t.protocol }}</a></td>
-          <td><a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a></td>
-          <td><span class="chip">{{ t.department.code }}</span></td>
-          <td>
-            {% if t.priority == 'LOW' %}<span class="chip green lighten-2">Bassa</span>
-            {% elif t.priority == 'MED' %}<span class="chip amber lighten-2">Media</span>
-            {% elif t.priority == 'HIGH' %}<span class="chip deep-orange lighten-2">Alta</span>
-            {% else %}<span class="chip red lighten-2">Bloccante</span>{% endif %}
-          </td>
-          <td>{{ t.created_by.username }}</td>
-          <td>{{ t.created_at|date:"d/m/Y H:i" }}</td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="6" class="grey-text">Nessun ticket trovato.</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    <div class="card-content">
+        <div class="responsive-table">
+            <table class="highlight striped">
+                <thead>
+                <tr>
+                    <th style="white-space:nowrap;">Protocollo</th>
+                    <th>Titolo</th>
+                    <th>Comparto</th>
+                    <th>Priorità</th>
+                    <th>Creato da</th>
+                    <th style="white-space:nowrap;">Creato il</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td style="white-space:nowrap;">
+                        <a class="chip small" href="{% url 'ticket_detail' t.pk %}">{{ t.protocol }}</a>
+                    </td>
+                    <td class="truncate" title="{{ t.title }}">
+                        <a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a>
+                    </td>
+                    <td><span class="chip">{{ t.department.code }}</span></td>
+                    <td>
+                        {% if t.priority == 'LOW' %}
+                        <span class="chip green lighten-2">Bassa</span>
+                        {% elif t.priority == 'MED' %}
+                        <span class="chip amber lighten-2">Media</span>
+                        {% elif t.priority == 'HIGH' %}
+                        <span class="chip deep-orange lighten-2">Alta</span>
+                        {% else %}
+                        <span class="chip red lighten-2">Bloccante</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ t.created_by.username }}</td>
+                    <td style="white-space:nowrap;">{{ t.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="grey-text center-align">Nessun ticket trovato.</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-  <!-- PAGINAZIONE -->
-  <div class="card-action center">
+
+<!-- PAGINAZIONE -->
+<div class="card-action center">
     <ul class="pagination">
-      {% if page_obj.has_previous %}
-        <li class="waves-effect"><a href="{% url_replace page=page_obj.previous_page_number %}"><i class="material-icons">chevron_left</i></a></li>
-      {% else %}
+        {% if page_obj.has_previous %}
+        <li class="waves-effect"><a href="{% url_replace page=page_obj.previous_page_number %}"><i
+                class="material-icons">chevron_left</i></a></li>
+        {% else %}
         <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
-      {% endif %}
+        {% endif %}
 
-      <li class="active blue darken-3"><a href="#!">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
+        <li class="active blue darken-3"><a href="#!">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
 
-      {% if page_obj.has_next %}
-        <li class="waves-effect"><a href="{% url_replace page=page_obj.next_page_number %}"><i class="material-icons">chevron_right</i></a></li>
-      {% else %}
+        {% if page_obj.has_next %}
+        <li class="waves-effect"><a href="{% url_replace page=page_obj.next_page_number %}"><i class="material-icons">chevron_right</i></a>
+        </li>
+        {% else %}
         <li class="disabled"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
-      {% endif %}
+        {% endif %}
     </ul>
-  </div>
+</div>
 </div>
 {% endblock %}
