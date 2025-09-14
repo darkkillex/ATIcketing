@@ -1,57 +1,95 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <title>ATIcketing</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8">
+    <title>ATIcketing</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
 
-  <!-- Materialize CSS + Icons -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Materialize CSS + Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
 
-  <style>
-    nav { padding: 0 1rem; }
-    .brand-logo { font-weight: 600; }
-    .chip.small { height: 24px; line-height: 24px; }
-    .chip.small .material-icons { font-size: 18px; margin-right: 6px; }
-    .table-title { display:flex; align-items:center; gap:.5rem; margin:1rem 0 .5rem; }
-    .mt-2 { margin-top: 1.25rem; }
-    .mb-2 { margin-bottom: 1.25rem; }
-    .btn-flat.btn-flat-primary { color:#039be5; }
-    .container.narrow { max-width: 1080px; }
-  </style>
+    <style>
+        /* Base */
+        nav { padding: 0 1rem; }
+        .brand-logo { font-weight: 600; }
+        .chip.small { height: 24px; line-height: 24px; }
+        .chip.small .material-icons { font-size: 18px; margin-right: 6px; }
+        .table-title { display:flex; align-items:center; gap:.5rem; margin:1rem 0 .5rem; }
+        .mt-2 { margin-top: 1.25rem; }
+        .mb-2 { margin-bottom: 1.25rem; }
+        .btn-flat.btn-flat-primary { color:#039be5; }
+        .container.narrow { max-width: 1080px; }
+
+        /* Navbar: rendi il form logout “inline” e il bottone come un link */
+        nav .nav-wrapper form { display: inline; margin: 0; }
+        nav .nav-wrapper .btn-flat {
+          color: #fff;            /* testo bianco su navbar scura */
+          height: 64px;           /* altezza tipica navbar desktop */
+          line-height: 64px;
+          padding: 0 16px;
+        }
+        nav .nav-wrapper .btn-flat:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        nav .nav-wrapper .btn-flat .material-icons {
+          line-height: inherit;
+          vertical-align: middle;
+        }
+
+        /* Mobile: navbar un filo più bassa */
+        @media (max-width: 992px) {
+          nav .nav-wrapper .btn-flat {
+            height: 56px;
+            line-height: 56px;
+          }
+        }
+    </style>
+
 </head>
 <body class="grey lighten-5">
 
-  <nav class="blue darken-3">
+<nav class="blue darken-3">
     <div class="nav-wrapper">
-      <a href="/" class="brand-logo">ATIcketing</a>
-      <ul id="nav-mobile" class="right hide-on-med-and-down">
-        {% if request.user.is_authenticated %}
-          <li><a href="{% url 'ticket_new' %}"><i class="material-icons left">add_circle</i>Nuovo Ticket</a></li>
-          <li><a href="{% url 'logout' %}"><i class="material-icons left">exit_to_app</i>Logout</a></li>
-        {% else %}
-          <li><a href="{% url 'login' %}">Accedi</a></li>
-        {% endif %}
-      </ul>
-    </div>
-  </nav>
+        <a href="/" class="brand-logo">ATIcketing</a>
+        <ul id="nav-mobile" class="right hide-on-med-and-down">
+            {% if request.user.is_authenticated %}
+            <li>
+                <a href="{% url 'ticket_new' %}">
+                    <i class="material-icons left">add_circle</i>Nuovo Ticket
+                </a>
+            </li>
+            <li>
+                <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-flat" style="margin:0; padding:0 16px;">
+                        <i class="material-icons left" style="line-height:inherit;">exit_to_app</i>Logout
+                    </button>
+                </form>
+            </li>
+            {% else %}
+            <li><a href="{% url 'login' %}">Accedi</a></li>
+            {% endif %}
+        </ul>
 
-  <main class="container narrow">
+    </div>
+</nav>
+
+<main class="container narrow">
     <!-- Flash messages come toast -->
     {% if messages %}
-      <div id="django-messages" style="display:none;">
+    <div id="django-messages" style="display:none;">
         {% for m in messages %}
-          <div data-text="{{ m|escape }}" data-tags="{{ m.tags|default:'' }}"></div>
+        <div data-text="{{ m|escape }}" data-tags="{{ m.tags|default:'' }}"></div>
         {% endfor %}
-      </div>
+    </div>
     {% endif %}
 
     {% block content %}{% endblock %}
-  </main>
+</main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-  <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
       // Inizializza componenti Materialize
       M.AutoInit();
@@ -70,6 +108,6 @@
         });
       }
     });
-  </script>
+</script>
 </body>
 </html>

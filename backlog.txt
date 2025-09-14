@@ -5,7 +5,7 @@ Notifiche email templated ✅
 Permessi granulari (RBAC) ✅
 Export CSV (rispetta i filtri) ✅
 API hardening (token/JWT, CORS, rate limit) ✅
-Logging & audit ⏳
+Logging & audit ✅
 Test & CI ⏳
 Pacchetto “prod LAN” (gunicorn+nginx, DEBUG=False)⏳
 
