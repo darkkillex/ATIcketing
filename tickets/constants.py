@@ -1,0 +1,18 @@
+# tickets/constants.py
+
+# Codici per le categorie ICT
+ICT_CATEGORY_HARDWARE = "HW"
+ICT_CATEGORY_SOFTWARE = "SW"
+ICT_CATEGORY_BKW      = "BKW"
+ICT_CATEGORY_EUREKA   = "EUREKA"
+ICT_CATEGORY_ACCOUNT  = "ACCOUNT"
+ICT_CATEGORY_OTHER    = "OTHER"
+
+ICT_CATEGORY_CHOICES = [
+    (ICT_CATEGORY_HARDWARE, "Hardware"),
+    (ICT_CATEGORY_SOFTWARE, "Software"),
+    (ICT_CATEGORY_BKW,      "BKW"),
+    (ICT_CATEGORY_EUREKA,   "Eureka"),
+    (ICT_CATEGORY_ACCOUNT,  "Account utente"),
+    (ICT_CATEGORY_OTHER,    "Altro"),
+]

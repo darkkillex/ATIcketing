@@ -27,13 +27,14 @@
             {% for e in form.description.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
 
-          <!-- Selezioni principali (2 colonne su desktop) -->
+          <!-- Reparto -->
           <div class="input-field col s12 m6">
             {{ form.department|add_class:"browser-default" }}
             <label class="active">{{ form.department.label }}</label>
             {% for e in form.department.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
 
+          <!-- PRIORITÀ / IMPATTO / URGENZA / CANALE -->
           <div class="input-field col s12 m6">
             {{ form.priority|add_class:"browser-default" }}
             <label class="active">{{ form.priority.label }}</label>
@@ -60,6 +61,23 @@
           </div>
           {% endif %}
 
+          <!-- 👇 CATEGORIE ICT (mostra SOLO se reparto = ICT) -->
+          {% if form.category %}
+          <div id="ict-category-row" class="input-field col s12 m6" style="display:none;">
+            <label class="active">{{ form.category.label }}</label>
+            {{ form.category|add_class:"browser-default" }}
+            {% for e in form.category.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+          {% endif %}
+
+          {% if form.category_other %}
+          <div id="ict-category-other-row" class="input-field col s12 m6" style="display:none;">
+            {{ form.category_other.label_tag }}
+            {{ form.category_other }}
+            {% for e in form.category_other.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
+          {% endif %}
+
           <!-- Campi testo aggiuntivi -->
           <div class="input-field col s12 m6">
             {{ form.location.label_tag }}
@@ -78,7 +96,6 @@
             <div class="file-field input-field">
               <div class="btn blue darken-3">
                 <span><i class="material-icons left">attach_file</i>Allega</span>
-                <!-- input nativo multiplo con nome 'attachments' -->
                 <input type="file" id="id_attachments" name="attachments" multiple>
               </div>
               <div class="file-path-wrapper">
@@ -113,4 +130,56 @@
     </div>
   </div>
 </div>
+
+<!-- JS: mostra le categorie solo se reparto = ICT; mostra "Altro" quando selezionato -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const depSel   = document.getElementById('id_department');
+  const catRow   = document.getElementById('ict-category-row');
+  const otherRow = document.getElementById('ict-category-other-row');
+  const catSel   = document.getElementById('id_category');
+  const catOther = document.getElementById('id_category_other');
+
+  // Passato dalla view: id del reparto ICT (o null se non trovato)
+  const ICT_DEP_ID = {{ ict_dep_id|default:"null" }};
+
+  function isICTSelected() {
+    if (!depSel) return false;
+    const val = depSel.value;
+    if (ICT_DEP_ID !== null) {
+      return String(val) === String(ICT_DEP_ID);
+    }
+    // fallback se non passi ict_dep_id: prova a riconoscere dal testo dell'opzione
+    const opt = depSel.options[depSel.selectedIndex];
+    return opt && opt.text && opt.text.trim().toUpperCase().startsWith('ICT');
+  }
+
+  function sync() {
+    const showICT = isICTSelected();
+
+    if (catRow) catRow.style.display = showICT ? '' : 'none';
+    if (catSel) {
+      catSel.disabled = !showICT;
+      if (!showICT) {
+        catSel.value = '';
+      }
+    }
+
+    const isOther = showICT && catSel && catSel.value === 'OTHER';
+    if (otherRow) otherRow.style.display = isOther ? '' : 'none';
+    if (catOther) {
+      catOther.disabled = !isOther;
+      if (!isOther) {
+        catOther.value = '';
+      }
+    }
+  }
+
+  if (depSel)  depSel.addEventListener('change', sync);
+  if (catSel)  catSel.addEventListener('change', sync);
+
+  // Prima sync per stato iniziale (utile dopo validation errors)
+  sync();
+});
+</script>
 {% endblock %}

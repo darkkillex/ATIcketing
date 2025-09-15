@@ -5,6 +5,7 @@ from django.utils import timezone
 import os
 
 from .models import Ticket, Department
+from .constants import ICT_CATEGORY_CHOICES, ICT_CATEGORY_OTHER
 
 ALLOWED_EXTS = set(ext.strip().lower() for ext in settings.ATTACHMENTS_ALLOWED_EXTENSIONS)
 MAX_SIZE_BYTES = settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
@@ -36,22 +37,39 @@ class MultiFileField(forms.FileField):
             raise forms.ValidationError(self.error_messages['required'], code='required')
 
 class NewTicketForm(forms.ModelForm):
+    # Allegati (come già avevi)
     attachments = MultiFileField(required=False)
+
+    # 👇 Nuovi campi per categoria ICT
+    category = forms.ChoiceField(
+        label="Categoria (ICT)",
+        choices=[("", "— seleziona —")] + ICT_CATEGORY_CHOICES,
+        required=False,
+    )
+    category_other = forms.CharField(
+        label="Specificare (se Altro)",
+        max_length=100,
+        required=False,
+    )
 
     class Meta:
         model = Ticket
         fields = [
             'title', 'description', 'department',
             'priority', 'impact', 'urgency', 'source_channel',
-            'location', 'asset_code',
+            'location', 'asset_code', 'category', 'category_other',
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 6}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, department=None, **kwargs):
+        """
+        Passa `department` dalla view se vuoi pre-selezionare/filter logiche (es. ICT).
+        """
         super().__init__(*args, **kwargs)
 
+        # --- i tuoi settaggi esistenti ---
         self.fields['title'].widget.attrs.update({
             'class': 'validate',
             'placeholder': 'Titolo breve',
@@ -82,6 +100,43 @@ class NewTicketForm(forms.ModelForm):
         except Exception:
             pass
 
+        # --- stile per i nuovi campi categoria ---
+        self.fields['category'].widget.attrs.update({'class': 'browser-default'})
+        self.fields['category_other'].widget.attrs.update({
+            'class': 'validate',
+            'placeholder': 'Inserisci la categoria',
+            'autocomplete': 'off',
+        })
+
+        # salva il reparto passato dalla view (se presente) per usarlo in clean()
+        self._preset_department = department
+
+    def clean(self):
+        cleaned = super().clean()
+
+        # quale reparto è selezionato effettivamente?
+        dep = self._preset_department or cleaned.get('department')
+        dep_code = getattr(dep, 'code', None)
+
+        cat = (cleaned.get('category') or "").strip()
+        other = (cleaned.get('category_other') or "").strip()
+
+        if dep_code == "ICT":
+            # per ICT: la categoria è richiesta
+            if not cat:
+                self.add_error('category', "Seleziona una categoria.")
+            # se "Altro", richiedi specifica
+            if cat == "OTHER" and not other:
+                self.add_error('category_other', "Specifica la categoria se hai scelto 'Altro'.")
+            # se NON "Altro", svuota l'eventuale testo digitato
+            if cat != "OTHER":
+                cleaned['category_other'] = ""
+        else:
+            # non ICT: non salviamo nulla per la categoria
+            cleaned['category'] = ""
+            cleaned['category_other'] = ""
+
+        return cleaned
 
     def clean_attachments(self):
         files = self.cleaned_data.get('attachments') or []

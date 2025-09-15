@@ -74,6 +74,10 @@ class Ticket(models.Model):
     urgency = models.CharField(max_length=4, choices=URGENCY_CHOICES, default='MED')
     source_channel = models.CharField(max_length=3, choices=SOURCE_CHOICES, default='WEB')
 
+    # categorizzazione generica (verrà pilotata da JS e validata lato server)
+    category = models.CharField(max_length=100, blank=True, null=True, default="")
+    category_other = models.CharField(max_length=100, blank=True, null=True, default="")
+
     department = models.ForeignKey(Department, on_delete=models.PROTECT, related_name='tickets')
     created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_tickets')
     assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tickets')

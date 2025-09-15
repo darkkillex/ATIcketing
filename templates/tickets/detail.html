@@ -1,240 +1,257 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="row mt-2">
-  <div class="col s12">
-    <!-- HEADER -->
-    <div class="card">
-      <div class="card-content">
+    <div class="col s12">
+        <!-- HEADER -->
+        <div class="card">
+            <div class="card-content">
         <span class="card-title">
           <i class="material-icons left">receipt_long</i>
           {{ ticket.title }}
         </span>
 
-        <p class="grey-text">
-          Protocollo: <span class="chip">{{ ticket.protocol }}</span>
-          &nbsp;–&nbsp; Comparto: <span class="chip">{{ ticket.department.code }}</span>
-        </p>
+                <p class="grey-text">
+                    Protocollo: <span class="chip">{{ ticket.protocol }}</span>
+                    &nbsp;–&nbsp; Comparto: <span class="chip">{{ ticket.department.code }}</span>
+                </p>
 
-        <div class="mt-2">
-          <span class="chip">Priorità: {{ ticket.get_priority_display }}</span>
-          <span class="chip">Stato: {{ ticket.get_status_display }}</span>
-          <span class="chip">Impatto: {{ ticket.get_impact_display }}</span>
-          <span class="chip">Urgenza: {{ ticket.get_urgency_display }}</span>
-        </div>
+                <div class="mt-2">
+                    {% if ticket.department.code == "ICT" and ticket.category %}
+                    <span class="chip">
+                        {% if ticket.category == "OTHER" and ticket.category_other %}
+                          Altro — {{ ticket.category_other }}
+                        {% else %}
+                          {% if ticket.category == "HW" %}Hardware{% elif ticket.category == "SW" %}Software
+                          {% elif ticket.category == "BKW" %}BKW{% elif ticket.category == "EUREKA" %}Eureka
+                          {% elif ticket.category == "ACCOUNT" %}Account utente{% else %}{{ ticket.category }}{% endif %}
+                        {% endif %}
+                      </span>
+                    {% endif %}
+                    <span class="chip">Priorità: {{ ticket.get_priority_display }}</span>
+                    <span class="chip">Stato: {{ ticket.get_status_display }}</span>
+                    <span class="chip">Impatto: {{ ticket.get_impact_display }}</span>
+                    <span class="chip">Urgenza: {{ ticket.get_urgency_display }}</span>
+                </div>
 
-        <p class="mt-2 grey-text">
-          Creato da <b>{{ ticket.created_by.username }}</b> il {{ ticket.created_at|date:"d/m/Y H:i" }}
-          {% if ticket.assignee %} &nbsp;–&nbsp; Assegnato a <b>{{ ticket.assignee.username }}</b>{% endif %}
-        </p>
+                <p class="mt-2 grey-text">
+                    Creato da <b>{{ ticket.created_by.username }}</b> il {{ ticket.created_at|date:"d/m/Y H:i" }}
+                    {% if ticket.assignee %} &nbsp;–&nbsp; Assegnato a <b>{{ ticket.assignee.username }}</b>{% endif %}
+                </p>
 
-        <p class="mt-2">{{ ticket.description|linebreaksbr }}</p>
-      </div>
-      <div class="card-action right-align">
-        <a href="{% url 'landing' %}" class="btn-flat"><i class="material-icons left">arrow_back</i>Indietro</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======= GRID DEI FORM (responsive) ======= -->
-  <!-- A) Commento -->
-  <div class="col s12 m6">
-    <div class="card">
-      <div class="card-content">
-        <span class="card-title"><i class="material-icons left">chat</i>Aggiungi commento</span>
-        <form method="post" class="row" style="margin-bottom:0;" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_comment">
-
-          <div class="input-field col s12">
-            <textarea id="id_body" name="body" class="materialize-textarea" rows="4" required></textarea>
-            <label for="id_body">Aggiungi un commento</label>
-            {% if comment_form.body.errors %}<div class="red-text">{{ comment_form.body.errors }}</div>{% endif %}
-          </div>
-
-          {% if can_change_status %}
-          <div class="col s12" style="margin-top:.5rem;">
-            <label>
-              <input type="checkbox" name="is_internal">
-              <span>Commento interno (visibile solo allo staff)</span>
-            </label>
-          </div>
-          {% endif %}
-
-          <div class="col s12 right-align" style="margin-top:1rem;">
-            <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
-              Pubblica <i class="material-icons right">send</i>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- B) Upload Allegati -->
-  <div class="col s12 m6">
-    <div class="card">
-      <div class="card-content">
-        <span class="card-title"><i class="material-icons left">attach_file</i>Carica allegati</span>
-
-        <form method="post" enctype="multipart/form-data" class="row" style="margin-bottom:0;" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_attachments">
-
-          <div class="col s12">
-            <div class="file-field input-field">
-              <div class="btn blue darken-3">
-                <span><i class="material-icons left">file_upload</i>Seleziona</span>
-                <input type="file" name="attachments" multiple>
-              </div>
-              <div class="file-path-wrapper">
-                <input class="file-path validate" type="text" placeholder="PDF/JPG/PNG/XLSX/DOCX/TXT, max 15MB ciascuno">
-              </div>
+                <p class="mt-2">{{ ticket.description|linebreaksbr }}</p>
             </div>
-            {% if attach_form.errors %}<div class="red-text">{{ attach_form.errors }}</div>{% endif %}
-            <small class="grey-text">Puoi selezionare più file contemporaneamente.</small>
-          </div>
-
-          <div class="col s12 right-align" style="margin-top:1rem;">
-            <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
-              Aggiungi allegati <i class="material-icons right">cloud_upload</i>
-            </button>
-          </div>
-        </form>
-      </div>
+            <div class="card-action right-align">
+                <a href="{% url 'landing' %}" class="btn-flat"><i class="material-icons left">arrow_back</i>Indietro</a>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- C) Cambio stato (solo staff) -->
-  {% if can_change_status %}
-  <div class="col s12 m6">
-    <div class="card">
-      <div class="card-content">
-        <span class="card-title"><i class="material-icons left">sync</i>Cambia stato</span>
+    <!-- ======= GRID DEI FORM (responsive) ======= -->
+    <!-- A) Commento -->
+    <div class="col s12 m6">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title"><i class="material-icons left">chat</i>Aggiungi commento</span>
+                <form method="post" class="row" style="margin-bottom:0;" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_comment">
 
-        <form method="post" class="row" style="margin-bottom:0;" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="action" value="change_status">
+                    <div class="input-field col s12">
+                        <textarea id="id_body" name="body" class="materialize-textarea" rows="4" required></textarea>
+                        <label for="id_body">Aggiungi un commento</label>
+                        {% if comment_form.body.errors %}
+                        <div class="red-text">{{ comment_form.body.errors }}</div>
+                        {% endif %}
+                    </div>
 
-          <div class="col s12">
-            <label class="active">Stato</label>
-            <select class="browser-default" name="status" required>
-              {% for code,label in status_choices %}
-                <option value="{{ code }}" {% if ticket.status == code %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
+                    {% if can_change_status %}
+                    <div class="col s12" style="margin-top:.5rem;">
+                        <label>
+                            <input type="checkbox" name="is_internal">
+                            <span>Commento interno (visibile solo allo staff)</span>
+                        </label>
+                    </div>
+                    {% endif %}
 
-          <div class="col s12 right-align" style="margin-top:1rem;">
-            <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
-              Aggiorna stato <i class="material-icons right">sync</i>
-            </button>
-          </div>
-        </form>
-      </div>
+                    <div class="col s12 right-align" style="margin-top:1rem;">
+                        <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
+                            Pubblica <i class="material-icons right">send</i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
-  {% endif %}
 
-  <!-- ======= LISTE: Allegati / Commenti (affiancate su desktop) ======= -->
-  <div class="col s12 m6">
-    <div class="card">
-      <div class="card-content">
-        <span class="card-title"><i class="material-icons left">folder</i>Allegati</span>
+    <!-- B) Upload Allegati -->
+    <div class="col s12 m6">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title"><i class="material-icons left">attach_file</i>Carica allegati</span>
 
-        {% if attachments %}
-          <ul class="collection">
-            {% for a in attachments %}
-              <li class="collection-item">
-                <i class="material-icons left">insert_drive_file</i>
-                <a href="{{ a.file.url }}" target="_blank" rel="noopener" download>
-                  {{ a.original_name|default:a.file.name }}
-                </a>
-                <span class="secondary-content grey-text">
+                <form method="post" enctype="multipart/form-data" class="row" style="margin-bottom:0;" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_attachments">
+
+                    <div class="col s12">
+                        <div class="file-field input-field">
+                            <div class="btn blue darken-3">
+                                <span><i class="material-icons left">file_upload</i>Seleziona</span>
+                                <input type="file" name="attachments" multiple>
+                            </div>
+                            <div class="file-path-wrapper">
+                                <input class="file-path validate" type="text"
+                                       placeholder="PDF/JPG/PNG/XLSX/DOCX/TXT, max 15MB ciascuno">
+                            </div>
+                        </div>
+                        {% if attach_form.errors %}
+                        <div class="red-text">{{ attach_form.errors }}</div>
+                        {% endif %}
+                        <small class="grey-text">Puoi selezionare più file contemporaneamente.</small>
+                    </div>
+
+                    <div class="col s12 right-align" style="margin-top:1rem;">
+                        <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
+                            Aggiungi allegati <i class="material-icons right">cloud_upload</i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- C) Cambio stato (solo staff) -->
+    {% if can_change_status %}
+    <div class="col s12 m6">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title"><i class="material-icons left">sync</i>Cambia stato</span>
+
+                <form method="post" class="row" style="margin-bottom:0;" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_status">
+
+                    <div class="col s12">
+                        <label class="active">Stato</label>
+                        <select class="browser-default" name="status" required>
+                            {% for code,label in status_choices %}
+                            <option value="{{ code }}" {% if ticket.status == code %}selected{% endif %}>{{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col s12 right-align" style="margin-top:1rem;">
+                        <button class="btn waves-effect waves-light blue darken-3 btn-full-sm" type="submit">
+                            Aggiorna stato <i class="material-icons right">sync</i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ======= LISTE: Allegati / Commenti (affiancate su desktop) ======= -->
+    <div class="col s12 m6">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title"><i class="material-icons left">folder</i>Allegati</span>
+
+                {% if attachments %}
+                <ul class="collection">
+                    {% for a in attachments %}
+                    <li class="collection-item">
+                        <i class="material-icons left">insert_drive_file</i>
+                        <a href="{{ a.file.url }}" target="_blank" rel="noopener" download>
+                            {{ a.original_name|default:a.file.name }}
+                        </a>
+                        <span class="secondary-content grey-text">
                   {% if a.uploaded_by %}{{ a.uploaded_by.username }} – {% endif %}
                   {{ a.uploaded_at|date:"d/m/Y H:i" }}
                 </span>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="grey-text">Nessun allegato.</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <div class="col s12 m6">
-    <div class="card">
-      <div class="card-content">
-        <span class="card-title"><i class="material-icons left">timeline</i>Commenti</span>
-
-        {% if comments %}
-          <ul class="collection">
-            {% for c in comments %}
-              <li class="collection-item">
-                {% if c.is_internal %}
-                  <span class="new badge red" data-badge-caption="Interno"></span>
-                {% endif %}
-                <p style="margin-bottom:.4rem">{{ c.body|linebreaksbr }}</p>
-                <span class="grey-text">{{ c.author.username }} – {{ c.created_at|date:"d/m/Y H:i" }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="grey-text">Ancora nessun commento.</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- Registro Attività -->
-  <div class="col s12">
-    <div class="card">
-      <div class="card-content">
-        <span class="card-title"><i class="material-icons left">history</i>Registro attività</span>
-
-        {% if ticket.audits.all %}
-          <ul class="collection">
-            {% for a in ticket.audits.all %}
-              <li class="collection-item">
-                {% if a.action == "CREATED" %}
-                  <i class="material-icons tiny green-text">add_circle</i>
-                {% elif a.action == "STATUS_CHANGED" %}
-                  <i class="material-icons tiny blue-text">sync</i>
-                {% elif a.action == "COMMENT_ADDED" %}
-                  <i class="material-icons tiny">chat_bubble_outline</i>
-                {% elif a.action == "ATTACHMENT_ADDED" %}
-                  <i class="material-icons tiny">attach_file</i>
-                {% elif a.action == "ASSIGNED" %}
-                  <i class="material-icons tiny">assignment_ind</i>
+                    </li>
+                    {% endfor %}
+                </ul>
                 {% else %}
-                  <i class="material-icons tiny">info</i>
+                <p class="grey-text">Nessun allegato.</p>
                 {% endif %}
+            </div>
+        </div>
+    </div>
 
-                <span class="grey-text" style="margin-left:6px;">
+    <div class="col s12 m6">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title"><i class="material-icons left">timeline</i>Commenti</span>
+
+                {% if comments %}
+                <ul class="collection">
+                    {% for c in comments %}
+                    <li class="collection-item">
+                        {% if c.is_internal %}
+                        <span class="new badge red" data-badge-caption="Interno"></span>
+                        {% endif %}
+                        <p style="margin-bottom:.4rem">{{ c.body|linebreaksbr }}</p>
+                        <span class="grey-text">{{ c.author.username }} – {{ c.created_at|date:"d/m/Y H:i" }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="grey-text">Ancora nessun commento.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Registro Attività -->
+    <div class="col s12">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title"><i class="material-icons left">history</i>Registro attività</span>
+
+                {% if ticket.audits.all %}
+                <ul class="collection">
+                    {% for a in ticket.audits.all %}
+                    <li class="collection-item">
+                        {% if a.action == "CREATED" %}
+                        <i class="material-icons tiny green-text">add_circle</i>
+                        {% elif a.action == "STATUS_CHANGED" %}
+                        <i class="material-icons tiny blue-text">sync</i>
+                        {% elif a.action == "COMMENT_ADDED" %}
+                        <i class="material-icons tiny">chat_bubble_outline</i>
+                        {% elif a.action == "ATTACHMENT_ADDED" %}
+                        <i class="material-icons tiny">attach_file</i>
+                        {% elif a.action == "ASSIGNED" %}
+                        <i class="material-icons tiny">assignment_ind</i>
+                        {% else %}
+                        <i class="material-icons tiny">info</i>
+                        {% endif %}
+
+                        <span class="grey-text" style="margin-left:6px;">
                   {{ a.created_at|date:"d/m/Y H:i" }}
                 </span>
 
-                <span class="chip grey lighten-3" style="margin-left:6px;">
+                        <span class="chip grey lighten-3" style="margin-left:6px;">
                   {{ a.get_action_display }}
                 </span>
 
-                {% if a.actor %} da <b>{{ a.actor.username }}</b>{% endif %}
-                {% if a.note %} — {{ a.note }}{% endif %}
+                        {% if a.actor %} da <b>{{ a.actor.username }}</b>{% endif %}
+                        {% if a.note %} — {{ a.note }}{% endif %}
 
-                {% if a.action == "ATTACHMENT_ADDED" and a.meta.files %}
-                <div class="grey-text text-darken-1" style="margin-top:4px;">
-                  {% for fn in a.meta.files %}• {{ fn }} {% endfor %}
-                </div>
+                        {% if a.action == "ATTACHMENT_ADDED" and a.meta.files %}
+                        <div class="grey-text text-darken-1" style="margin-top:4px;">
+                            {% for fn in a.meta.files %}• {{ fn }} {% endfor %}
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="grey-text">Nessuna attività registrata.</p>
                 {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="grey-text">Nessuna attività registrata.</p>
-        {% endif %}
-      </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 {% endblock %}

@@ -14,7 +14,8 @@ from django.core.exceptions import PermissionDenied
 from datetime import datetime, time
 from django.utils import timezone
 
-from .models import Ticket, Attachment, Comment
+from .constants import ICT_CATEGORY_CHOICES
+from .models import Ticket, Attachment, Comment, Department
 from .serializers import TicketSerializer
 from .services import create_ticket_with_notification
 from .forms import NewTicketForm, CommentForm, AttachmentUploadForm, TicketFilterForm
@@ -355,6 +356,10 @@ def ticket_detail(request, pk: int):
 
 @login_required
 def new_ticket(request):
+    # prendi l'ID del reparto ICT (se esiste)
+    ict_dep = Department.objects.filter(code__iexact="ICT").only("id").first()
+    ict_dep_id = ict_dep.id if ict_dep else None
+
     if request.method == 'POST':
         form = NewTicketForm(request.POST, request.FILES)
         if form.is_valid():
@@ -374,7 +379,7 @@ def new_ticket(request):
                     uploaded_by=request.user,
                 ))
 
-            # Audit: se ho aggiunto allegati in creazione, loggo i nomi
+            # Audit allegati in creazione (facoltativo)
             if created_files:
                 try:
                     log_attachments(ticket, actor=request.user,
@@ -386,11 +391,18 @@ def new_ticket(request):
             return redirect('dash_team' if is_staffish(request.user) else 'dash_operator')
         else:
             messages.error(request, "Correggi gli errori nel form.")
+            # ⬇️ passa anche qui l'ict_dep_id se il form ha errori
+            return render(request, 'tickets/new.html', {
+                'form': form,
+                'ict_dep_id': ict_dep_id,
+            })
     else:
         form = NewTicketForm()
 
-    return render(request, 'tickets/new.html', {'form': form})
-
+    return render(request, 'tickets/new.html', {
+        'form': form,
+        'ict_dep_id': ict_dep_id,   # ⬅️ usato dal template/JS per mostrare le categorie ICT
+    })
 
 @login_required
 def ticket_audit_csv(request, pk: int):
