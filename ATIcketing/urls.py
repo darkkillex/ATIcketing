@@ -1,3 +1,5 @@
+import os
+
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
@@ -21,7 +23,7 @@ from tickets.views import (
 router = DefaultRouter()
 router.register(r'tickets', TicketViewSet, basename='ticket')
 
-#Easter Eeeeeeggs
+#Easter Eggs
 def boom(request):
     raise Exception("Boom di test 500!")
 
@@ -46,24 +48,18 @@ urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
 
-    # UI Tickets (una sola volta)
-    path('tickets/new/', new_ticket, name='ticket_new'),
-    path('tickets/<int:pk>/', ticket_detail, name='ticket_detail'),
-    path('tickets/operator.csv', operator_export_csv, name='operator_export_csv'),
-    path('tickets/team.csv', team_export_csv, name='team_export_csv'),
-    path('tickets/<int:pk>/audit.csv', ticket_audit_csv, name='ticket_audit_csv'),
+    # UI Tickets (importiamo tutti gli urls contenuti già in tickets\urls.py)
+    path('', include('tickets.urls')),
 
     # API DRF (una sola volta)
     path('api/', include(router.urls)),
 
-    # Alias legacy (tienili solo finché non aggiorni i template)
-    path('dash/operator/export.csv', operator_export_csv, name='dash_operator_export'),
-    path('dash/team/export.csv', team_export_csv, name='dash_team_export'),
+
     path("_boom/", boom),
 ]
 
-# Media (solo in dev)
-if settings.DEBUG:
+# Media in dev (o se forzato con SERVE_MEDIA=1)
+if settings.DEBUG or os.getenv("SERVE_MEDIA") == "1":
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # 404 custom: OK a livello di modulo, non dentro if

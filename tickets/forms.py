@@ -13,11 +13,30 @@ MAX_SIZE_BYTES = settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
 class MultiFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
 
+# ✅ Campo che accetta una LISTA di file (compatibile con MultiFileInput)
+class MultiFileField(forms.FileField):
+    widget = MultiFileInput
+
+    default_error_messages = {
+        'required': _("Seleziona almeno un file."),
+        'invalid':  _("Carica un file valido."),
+    }
+
+    def to_python(self, data):
+        if not data:
+            return []
+        if isinstance(data, (list, tuple)):
+            return list(data)
+        file_obj = super().to_python(data)
+        return [file_obj] if file_obj else []
+
+    def validate(self, data):
+        # 'data' è sempre una lista (anche vuota)
+        if self.required and not data:
+            raise forms.ValidationError(self.error_messages['required'], code='required')
+
 class NewTicketForm(forms.ModelForm):
-    attachments = forms.FileField(
-        required=False,
-        widget=MultiFileInput(attrs={'multiple': True})
-    )
+    attachments = MultiFileField(required=False)
 
     class Meta:
         model = Ticket
@@ -65,7 +84,7 @@ class NewTicketForm(forms.ModelForm):
 
 
     def clean_attachments(self):
-        files = self.files.getlist('attachments')
+        files = self.cleaned_data.get('attachments') or []
         errors = []
         for f in files:
             # Estensione
@@ -106,10 +125,7 @@ class CommentForm(forms.Form):
 
 
 class AttachmentUploadForm(forms.Form):
-    attachments = forms.FileField(
-        required=True,
-        widget=MultiFileInput(attrs={'multiple': True})
-    )
+    attachments = MultiFileField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -120,7 +136,7 @@ class AttachmentUploadForm(forms.Form):
             pass
 
     def clean_attachments(self):
-        files = self.files.getlist('attachments')
+        files = self.cleaned_data.get('attachments') or []
         errors = []
         for f in files:
             # Estensione

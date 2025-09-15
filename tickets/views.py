@@ -26,6 +26,7 @@ from .emails import (
 )
 from .audit import log_status_change, log_comment, log_attachments
 
+
 # ---------------------- API ----------------------
 class TicketViewSet(viewsets.ModelViewSet):
     serializer_class = TicketSerializer
@@ -47,11 +48,13 @@ class TicketViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(out.data)
         return Response(out.data, status=status.HTTP_201_CREATED, headers=headers)
 
+
 # ------------------- LANDING & DASHBOARD -------------------
 def landing(request):
     if not request.user.is_authenticated:
         return redirect('login')
     return redirect('dash_team' if is_staffish(request.user) else 'dash_operator')
+
 
 @login_required
 def operator_dashboard(request):
@@ -90,6 +93,7 @@ def operator_dashboard(request):
         'page_obj': page_obj,
         'paginator': paginator,
     })
+
 
 @login_required
 def team_dashboard(request):
@@ -134,6 +138,7 @@ def team_dashboard(request):
         'paginator': paginator,
     })
 
+
 # ------------------- EXPORT CSV -------------------
 @login_required
 def operator_export_csv(request):
@@ -165,8 +170,8 @@ def operator_export_csv(request):
     response.write('\ufeff')
     writer = csv.writer(response, delimiter=';')
     writer.writerow([
-        'Protocollo','Titolo','Comparto','Priorità','Stato',
-        'Creato da','Creato il','Assegnato a','Impatto','Urgenza','Location','Asset'
+        'Protocollo', 'Titolo', 'Comparto', 'Priorità', 'Stato',
+        'Creato da', 'Creato il', 'Assegnato a', 'Impatto', 'Urgenza', 'Location', 'Asset'
     ])
     for t in qs:
         writer.writerow([
@@ -176,6 +181,7 @@ def operator_export_csv(request):
             t.location or '', t.asset_code or '',
         ])
     return response
+
 
 @login_required
 def team_export_csv(request):
@@ -212,8 +218,8 @@ def team_export_csv(request):
     response.write('\ufeff')
     writer = csv.writer(response, delimiter=';')
     writer.writerow([
-        'Protocollo','Titolo','Comparto','Priorità','Stato',
-        'Creato da','Creato il','Assegnato a','Impatto','Urgenza','Location','Asset'
+        'Protocollo', 'Titolo', 'Comparto', 'Priorità', 'Stato',
+        'Creato da', 'Creato il', 'Assegnato a', 'Impatto', 'Urgenza', 'Location', 'Asset'
     ])
     for t in qs:
         writer.writerow([
@@ -223,6 +229,7 @@ def team_export_csv(request):
             t.location or '', t.asset_code or '',
         ])
     return response
+
 
 # ------------------- DETTAGLIO & CREAZIONE -------------------
 @login_required
@@ -235,7 +242,6 @@ def ticket_detail(request, pk: int):
 
     # Autorizzazione
     if not (ticket.created_by_id == request.user.id or is_staffish(request.user)):
-        #return HttpResponseForbidden("Non autorizzato")
         raise PermissionDenied("Non autorizzato")
 
     can_change_status = is_staffish(request.user)
@@ -257,8 +263,17 @@ def ticket_detail(request, pk: int):
                     body=form.cleaned_data['body'],
                     is_internal=is_internal
                 )
-                # notifica solo se pubblico
-                send_new_public_comment(c)
+
+                # Email SOLO se pubblico
+                if not c.is_internal:
+                    send_new_public_comment(c)
+
+                # Audit
+                try:
+                    log_comment(ticket, actor=request.user, comment=c)
+                except Exception:
+                    pass
+
                 messages.success(request, "Commento aggiunto.")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
@@ -270,7 +285,7 @@ def ticket_detail(request, pk: int):
             form = AttachmentUploadForm(request.POST, request.FILES)
             if form.is_valid():
                 created = []
-                for f in request.FILES.getlist('attachments'):
+                for f in (form.cleaned_data.get('attachments') or []):
                     created.append(Attachment.objects.create(
                         ticket=ticket,
                         file=f,
@@ -279,7 +294,17 @@ def ticket_detail(request, pk: int):
                         size=f.size,
                         uploaded_by=request.user,
                     ))
+
+                # Notifica
                 send_new_attachments(ticket, created, actor=request.user)
+
+                # Audit: logga i nomi file
+                try:
+                    log_attachments(ticket, actor=request.user,
+                                    filenames=[a.original_name for a in created])
+                except Exception:
+                    pass
+
                 messages.success(request, "Allegati caricati.")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
@@ -294,13 +319,25 @@ def ticket_detail(request, pk: int):
                 old_status_display = ticket.get_status_display()
                 ticket.status = new_status
                 ticket.save(update_fields=['status', 'updated_at'])
+
+                # Email di notifica
                 send_ticket_status_changed(ticket, old_status_display, actor=request.user)
+
+                # Audit
+                try:
+                    log_status_change(
+                        ticket,
+                        actor=request.user,
+                        old=old_status_display,
+                        new=ticket.get_status_display()
+                    )
+                except Exception:
+                    pass
+
                 messages.success(request, f"Stato aggiornato a: {valid[new_status]}")
                 return redirect('ticket_detail', pk=ticket.pk)
             else:
                 messages.error(request, "Stato non valido.")
-
-        # (nessun altro ramo usa new_status: fuori da qui non viene mai toccata)
 
     comments = ticket.comments.select_related('author').order_by('created_at')
     attachments = ticket.attachments.order_by('-uploaded_at')
@@ -315,6 +352,7 @@ def ticket_detail(request, pk: int):
         'status_choices': Ticket.STATUS_CHOICES,
     })
 
+
 @login_required
 def new_ticket(request):
     if request.method == 'POST':
@@ -324,16 +362,25 @@ def new_ticket(request):
             data['created_by'] = request.user
             ticket = create_ticket_with_notification(**data)
 
-            files = request.FILES.getlist('attachments')
+            files = form.cleaned_data.get('attachments') or []
+            created_files = []
             for f in files:
-                Attachment.objects.create(
+                created_files.append(Attachment.objects.create(
                     ticket=ticket,
                     file=f,
                     original_name=f.name,
                     mime_type=getattr(f, 'content_type', '') or '',
                     size=f.size,
                     uploaded_by=request.user,
-                )
+                ))
+
+            # Audit: se ho aggiunto allegati in creazione, loggo i nomi
+            if created_files:
+                try:
+                    log_attachments(ticket, actor=request.user,
+                                    filenames=[a.original_name for a in created_files])
+                except Exception:
+                    pass
 
             messages.success(request, f"Ticket creato: {ticket.protocol}")
             return redirect('dash_team' if is_staffish(request.user) else 'dash_operator')
@@ -349,7 +396,6 @@ def new_ticket(request):
 def ticket_audit_csv(request, pk: int):
     ticket = get_object_or_404(Ticket, pk=pk)
     if not (ticket.created_by_id == request.user.id or is_staffish(request.user)):
-        #return HttpResponseForbidden("Non autorizzato")
         raise PermissionDenied("Non autorizzato")
 
     audits = ticket.audits.select_related('actor').order_by('created_at')
@@ -369,4 +415,3 @@ def ticket_audit_csv(request, pk: int):
             (a.meta or {}),
         ])
     return resp
-
