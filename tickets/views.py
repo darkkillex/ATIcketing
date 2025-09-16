@@ -32,6 +32,13 @@ from .constants import (
     SP_CATEGORY_CHOICES,
 )
 
+def _filters_open(request):
+    keys = {
+        'q','status','priority','department','category','category_other',
+        'date_from','date_to','mine_only','page_size'
+    }
+    return any(request.GET.get(k) for k in keys)
+
 # ---------------------- API ----------------------
 class TicketViewSet(viewsets.ModelViewSet):
     serializer_class = TicketSerializer
@@ -111,6 +118,7 @@ def operator_dashboard(request):
         'OTHER_CODE': OTHER_CODE,  # per lo snippet JS del filtro
         'category_map': category_map,        # mappa reparto->categorie
         'dep_code_by_id': dep_code_by_id,    # mappa id->codice reparto (ICT/WH/SP)
+        'filters_open': _filters_open(request),
     })
 
 
@@ -168,6 +176,7 @@ def team_dashboard(request):
         'OTHER_CODE': OTHER_CODE,  # per lo snippet JS del filtro
         'category_map': category_map,
         'dep_code_by_id': dep_code_by_id,
+        'filters_open': _filters_open(request),
     })
 
 
