@@ -14,7 +14,6 @@ from django.core.exceptions import PermissionDenied
 from datetime import datetime, time
 from django.utils import timezone
 
-from .constants import ICT_CATEGORY_CHOICES
 from .models import Ticket, Attachment, Comment, Department
 from .serializers import TicketSerializer
 from .services import create_ticket_with_notification
@@ -78,6 +77,11 @@ def operator_dashboard(request):
             qs = qs.filter(priority=cd['priority'])
         if cd.get('department'):
             qs = qs.filter(department_id=int(cd['department']))
+        if cd.get('category'):
+            qs = qs.filter(category=cd['category'])
+            # opzionale: se Altro e l'utente ha scritto un testo, filtra per testo
+            if cd['category'] == OTHER_CODE and cd.get('category_other'):
+                qs = qs.filter(category_other__icontains=cd['category_other'])
         if cd.get('date_from'):
             start = timezone.make_aware(datetime.combine(cd['date_from'], time.min))
             qs = qs.filter(created_at__gte=start)
@@ -92,12 +96,21 @@ def operator_dashboard(request):
     paginator = Paginator(qs, page_size)
     page_number = request.GET.get('page') or 1
     page_obj = paginator.get_page(page_number)
+    dep_code_by_id = dict(Department.objects.all().values_list('id', 'code'))
+    category_map = {
+        "ICT": list(ICT_CATEGORY_CHOICES),
+        "WH": list(WH_CATEGORY_CHOICES),
+        "SP": list(SP_CATEGORY_CHOICES),
+    }
 
     return render(request, 'dash/operator.html', {
         'filter_form': form,
         'tickets': page_obj.object_list,
         'page_obj': page_obj,
         'paginator': paginator,
+        'OTHER_CODE': OTHER_CODE,  # per lo snippet JS del filtro
+        'category_map': category_map,        # mappa reparto->categorie
+        'dep_code_by_id': dep_code_by_id,    # mappa id->codice reparto (ICT/WH/SP)
     })
 
 
@@ -120,6 +133,10 @@ def team_dashboard(request):
             qs = qs.filter(priority=cd['priority'])
         if cd.get('department'):
             qs = qs.filter(department_id=int(cd['department']))
+        if cd.get('category'):
+            qs = qs.filter(category=cd['category'])
+            if cd['category'] == OTHER_CODE and cd.get('category_other'):
+                qs = qs.filter(category_other__icontains=cd['category_other'])
         if cd.get('date_from'):
             start = timezone.make_aware(datetime.combine(cd['date_from'], time.min))
             qs = qs.filter(created_at__gte=start)
@@ -136,12 +153,21 @@ def team_dashboard(request):
     paginator = Paginator(qs, page_size)
     page_number = request.GET.get('page') or 1
     page_obj = paginator.get_page(page_number)
+    dep_code_by_id = dict(Department.objects.all().values_list('id', 'code'))
+    category_map = {
+        "ICT": list(ICT_CATEGORY_CHOICES),
+        "WH": list(WH_CATEGORY_CHOICES),
+        "SP": list(SP_CATEGORY_CHOICES),
+    }
 
     return render(request, 'dash/team.html', {
         'filter_form': form,
         'tickets': page_obj.object_list,
         'page_obj': page_obj,
         'paginator': paginator,
+        'OTHER_CODE': OTHER_CODE,  # per lo snippet JS del filtro
+        'category_map': category_map,
+        'dep_code_by_id': dep_code_by_id,
     })
 
 
@@ -356,6 +382,7 @@ def ticket_detail(request, pk: int):
         'attach_form': attach_form,
         'can_change_status': can_change_status,
         'status_choices': Ticket.STATUS_CHOICES,
+        'OTHER_CODE': OTHER_CODE,  # per il template
     })
 
 

@@ -31,6 +31,14 @@
                     <span class="chip">Stato: {{ ticket.get_status_display }}</span>
                     <span class="chip">Impatto: {{ ticket.get_impact_display }}</span>
                     <span class="chip">Urgenza: {{ ticket.get_urgency_display }}</span>
+
+                      {% if ticket.category %}
+                        {% if ticket.category == OTHER_CODE and ticket.category_other %}
+                          <span class="chip">Categoria: Altro — {{ ticket.category_other }}</span>
+                        {% else %}
+                          <span class="chip">Categoria: {{ ticket.category }}</span>
+                        {% endif %}
+                      {% endif %}
                 </div>
 
                 <p class="mt-2 grey-text">

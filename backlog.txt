@@ -10,6 +10,8 @@ Test & CI ⏳
 Pacchetto “prod LAN” (gunicorn+nginx, DEBUG=False)⏳
 
 BUG FIXING
-Bottone logout non funzionante⏳
-Bottone allegati non carica alcun tipo di file ⏳
+Bottone logout non funzionante✅
+Bottone allegati non carica alcun tipo di file ✅
+Centrare la form di Nuovo Ticket⏳
+Modificare ordine delle varie label in Nuovo ticket⏳
 Autenticazione separata lato utente lato admin. Se cambio login, loggia automaticamente su entrambe le parti ⏳

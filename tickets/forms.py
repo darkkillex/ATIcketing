@@ -8,6 +8,13 @@ from .constants import (
     ICT_CATEGORY_CHOICES, WH_CATEGORY_CHOICES, SP_CATEGORY_CHOICES, OTHER_CODE
 )
 
+# Mappa reparto → scelte categoria
+CATEGORY_CHOICES_BY_DEPARTMENT = {
+    "ICT": ICT_CATEGORY_CHOICES,
+    "WH":  WH_CATEGORY_CHOICES,
+    "SP":  SP_CATEGORY_CHOICES,
+}
+
 # Unione di tutte le scelte categoria, così il POST inviato dal JS è sempre valido lato form
 ALL_CATEGORY_CHOICES = [("", "— seleziona —")] + ICT_CATEGORY_CHOICES + WH_CATEGORY_CHOICES + SP_CATEGORY_CHOICES
 
@@ -223,6 +230,11 @@ class TicketFilterForm(forms.Form):
     status = forms.ChoiceField(label="Stato", required=False)
     priority = forms.ChoiceField(label="Priorità", required=False)
     department = forms.ChoiceField(label="Comparto", required=False)
+
+    # 👇 nuovi campi filtro
+    category = forms.ChoiceField(label="Categoria", required=False)
+    category_other = forms.CharField(label="Specifica (se Altro)", required=False)
+
     date_from = forms.DateField(
         label="Dal", required=False,
         widget=forms.DateInput(attrs={'type': 'date'}),
@@ -241,17 +253,21 @@ class TicketFilterForm(forms.Form):
 
     def __init__(self, *args, user=None, is_team=False, **kwargs):
         super().__init__(*args, **kwargs)
-        # Scelte dinamiche
+
+        # Scelte dinamiche base
         self.fields['status'].choices = [('', 'Tutti')] + list(Ticket.STATUS_CHOICES)
         self.fields['priority'].choices = [('', 'Tutte')] + list(Ticket.PRIORITY_CHOICES)
         deps = Department.objects.all().order_by('code').values_list('id', 'code')
         self.fields['department'].choices = [('', 'Tutti')] + [(str(i), c) for i, c in deps]
+
         # Style Materialize per select
-        for name in ('status', 'priority', 'department', 'page_size'):
+        for name in ('status', 'priority', 'department', 'page_size', 'category'):
             self.fields[name].widget.attrs['class'] = 'browser-default'
+
         # L'operatore non vede "Solo miei"
         if not is_team:
             self.fields.pop('mine_only', None)
+
         if 'q' in self.fields:
             self.fields['q'].widget.attrs.update({
                 'class': 'validate',
@@ -261,3 +277,15 @@ class TicketFilterForm(forms.Form):
         for name in ('date_from', 'date_to'):
             if name in self.fields:
                 self.fields[name].widget.attrs.update({'class': 'validate'})
+
+        # --- Scelte dinamiche per CATEGORIA in base al reparto selezionato ---
+        dep_choice_id = (self.data.get('department') or self.initial.get('department') or '').strip()
+        cat_choices = [('', 'Tutte')]
+        if dep_choice_id:
+            try:
+                dep_code = Department.objects.filter(id=int(dep_choice_id)).values_list('code', flat=True).first()
+            except (ValueError, TypeError):
+                dep_code = None
+            if dep_code and dep_code in CATEGORY_CHOICES_BY_DEPARTMENT:
+                cat_choices += CATEGORY_CHOICES_BY_DEPARTMENT[dep_code]
+        self.fields['category'].choices = cat_choices

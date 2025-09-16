@@ -30,7 +30,24 @@
                 <label class="active">{{ filter_form.department.label }}</label>
                 {{ filter_form.department }}
             </div>
-
+            <!-- Categoria (si popola in base al reparto) -->
+            <div class="col s12 m6 l3">
+              <label class="active">Categoria</label>
+              <select id="id_category" name="category" class="browser-default">
+                <option value="">Tutte</option>
+                <!-- le option vengono inserite via JS -->
+              </select>
+            </div>
+            <!-- Dettaglio “Altro” -->
+            <div class="input-field col s12 m6 l3" id="flt_category_other_wrap" style="display:none;">
+              <input type="text"
+                     id="id_category_other"
+                     name="category_other"
+                     class="validate"
+                     placeholder="Specifica se scegli 'Altro'"
+                     value="{{ request.GET.category_other|default:'' }}">
+              <label for="id_category_other" class="active">Dettaglio (se Altro)</label>
+            </div>
             <!-- Date -->
             <div class="input-field col s12 m6 l3">
                 {{ filter_form.date_from }}
@@ -66,7 +83,90 @@
                     <i class="material-icons left">filter_list</i>Filtra
                 </button>
             </div>
+                        {# Dati dal server per popolare le categorie #}
+            {{ category_map|json_script:"category-map" }}
+            {{ dep_code_by_id|json_script:"dep-code-by-id" }}
+
+            <script>
+            (function () {
+              const depSelect   = document.getElementById('id_department');
+              const catSelect   = document.getElementById('id_category');
+              const otherWrap   = document.getElementById('flt_category_other_wrap');
+              const otherInput  = document.getElementById('id_category_other');
+
+              const categoryMap = JSON.parse(document.getElementById('category-map').textContent);   // {ICT:[[val,label],...], WH:[...], SP:[...]}
+              const depCodeById = JSON.parse(document.getElementById('dep-code-by-id').textContent); // {"3":"ICT","7":"WH",...}
+              const OTHER_CODE  = "{{ OTHER_CODE }}";
+              const preSelCategory = "{{ request.GET.category|default:'' }}";
+
+              function renderCategoryOptions(depId) {
+                // svuota select
+                while (catSelect.firstChild) catSelect.removeChild(catSelect.firstChild);
+
+                // opzione "Tutte"
+                const optAll = document.createElement('option');
+                optAll.value = "";
+                optAll.textContent = "Tutte";
+                catSelect.appendChild(optAll);
+
+                // trova codice reparto e relative scelte
+                const depCode = depId ? depCodeById[String(depId)] : null;
+                const choices = depCode && categoryMap[depCode] ? categoryMap[depCode] : [];
+
+                // aggiungi opzioni
+                choices.forEach(([value, label]) => {
+                  const opt = document.createElement('option');
+                  opt.value = value;
+                  opt.textContent = label;
+                  catSelect.appendChild(opt);
+                });
+
+                // ripristina selezione da querystring se coerente
+                if (preSelCategory) {
+                  const found = Array.from(catSelect.options).find(o => o.value === preSelCategory);
+                  catSelect.value = found ? preSelCategory : "";
+                } else {
+                  catSelect.value = "";
+                }
+
+                toggleOther(catSelect.value);
+              }
+
+              function toggleOther(value) {
+                if (value === OTHER_CODE) {
+                  otherWrap.style.display = "";
+                } else {
+                  otherWrap.style.display = "none";
+                  if (otherInput) otherInput.value = "";
+                }
+              }
+
+              // init (carica categorie in base al reparto corrente)
+              renderCategoryOptions(depSelect ? depSelect.value : null);
+
+              // eventi
+              if (depSelect) {
+                depSelect.addEventListener('change', function () {
+                  renderCategoryOptions(this.value);   // aggiorna subito senza submit
+                });
+              }
+              if (catSelect) {
+                catSelect.addEventListener('change', function () {
+                  toggleOther(this.value);
+                });
+              }
+            })();
+            </script>
         </form>
+        <script>
+        (function(){
+          const sel = document.getElementById("id_category");
+          const wrap = document.getElementById("flt_category_other_wrap");
+          const OTHER = "{{ OTHER_CODE }}";
+          function toggle(){ wrap.style.display = (sel && sel.value === OTHER) ? "" : "none"; }
+          if (sel) { sel.addEventListener("change", toggle); toggle(); }
+        })();
+        </script>
     </div>
 </div>
 
