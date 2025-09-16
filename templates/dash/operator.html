@@ -4,184 +4,189 @@
 {% block content %}
 
 <div class="table-title">
-  <i class="material-icons blue-text text-darken-2">assignment</i>
-  <h5 class="blue-text text-darken-2" style="margin:0;">I miei ticket</h5>
-
-  <!-- CSV -->
-  <a class="btn grey darken-2 right" style="margin-left:8px;" href="{% url 'operator_export_csv' %}{% url_replace %}">
-    <i class="material-icons left">file_download</i>CSV
-  </a>
-  <!-- Apri drawer -->
-  <a href="#!" data-target="filters-drawer" class="btn waves-effect waves-light blue darken-3 right sidenav-trigger">
-    <i class="material-icons left">filter_list</i>Filtri
-  </a>
-
-  <!-- Nuovo ticket -->
-  <a href="{% url 'ticket_new' %}" class="btn waves-effect waves-light blue darken-3 right" style="margin-right:8px;">
-    <i class="material-icons left">add</i>Nuovo
-  </a>
+    <i class="material-icons blue-text text-darken-2">assignment</i>
+    <h5 class="blue-text text-darken-2" style="margin:0;">I miei ticket</h5>
 </div>
 
 <!-- Chip riassunto filtri attivi -->
 {% if filters_open %}
-  <div class="card-panel" style="padding:8px 12px;">
+<div class="card-panel" style="padding:8px 12px;">
     {% if request.GET.q %}<span class="chip">Testo: “{{ request.GET.q }}”</span>{% endif %}
     {% if request.GET.status %}<span class="chip">Stato: {{ request.GET.status }}</span>{% endif %}
     {% if request.GET.priority %}<span class="chip">Priorità: {{ request.GET.priority }}</span>{% endif %}
     {% if request.GET.department %}<span class="chip">Comparto: {{ request.GET.department }}</span>{% endif %}
     {% if request.GET.category %}<span class="chip">Categoria: {{ request.GET.category }}</span>{% endif %}
     {% if request.GET.category == OTHER_CODE and request.GET.category_other %}
-      <span class="chip">Dettaglio: “{{ request.GET.category_other }}”</span>
+    <span class="chip">Dettaglio: “{{ request.GET.category_other }}”</span>
     {% endif %}
     {% if request.GET.date_from %}<span class="chip">Dal: {{ request.GET.date_from }}</span>{% endif %}
     {% if request.GET.date_to %}<span class="chip">Al: {{ request.GET.date_to }}</span>{% endif %}
     {% if request.GET.page_size %}<span class="chip">Per pagina: {{ request.GET.page_size }}</span>{% endif %}
     <a class="btn-flat right" href="."><i class="material-icons left">refresh</i>Reset</a>
-  </div>
+</div>
 {% endif %}
 
 <!-- ===== Drawer laterale con i filtri ===== -->
 <ul id="filters-drawer" class="sidenav" style="width:360px;">
-  <li class="blue darken-3 white-text" style="padding:16px 24px; display:flex; align-items:center; justify-content:space-between;">
+    <li class="blue darken-3 white-text"
+        style="padding:16px 24px; display:flex; align-items:center; justify-content:space-between;">
     <span style="display:flex; align-items:center;">
       <i class="material-icons" style="margin-right:8px;">filter_list</i> Filtri
     </span>
-    <a href="." class="btn-flat waves-effect white-text" title="Reset"><i class="material-icons">refresh</i></a>
-  </li>
-  <li>
-    <div class="section" style="padding:16px 24px;">
-      <form method="get" novalidate>
-        <!-- Testo -->
-        <div class="input-field">
-          {{ filter_form.q.label_tag }}{{ filter_form.q }}
-        </div>
+        <a href="." class="btn-flat waves-effect white-text" title="Reset"><i class="material-icons">refresh</i></a>
+    </li>
+    <li>
+        <div class="section" style="padding:16px 24px;">
+            <form method="get" novalidate>
+                <!-- Testo -->
+                <div class="input-field">
+                    {{ filter_form.q.label_tag }}{{ filter_form.q }}
+                </div>
 
-        <!-- Select base -->
-        <div class="input-field">
-          <label class="active">{{ filter_form.status.label }}</label>
-          {{ filter_form.status }}
-        </div>
-        <div class="input-field">
-          <label class="active">{{ filter_form.priority.label }}</label>
-          {{ filter_form.priority }}
-        </div>
-        <div class="input-field">
-          <label class="active">{{ filter_form.department.label }}</label>
-          {{ filter_form.department }}
-        </div>
+                <!-- Select base -->
+                <div class="input-field">
+                    <label class="active">{{ filter_form.status.label }}</label>
+                    {{ filter_form.status }}
+                </div>
+                <div class="input-field">
+                    <label class="active">{{ filter_form.priority.label }}</label>
+                    {{ filter_form.priority }}
+                </div>
+                <div class="input-field">
+                    <label class="active">{{ filter_form.department.label }}</label>
+                    {{ filter_form.department }}
+                </div>
 
-        <!-- Categoria dinamica -->
-        <div class="input-field">
-          <label class="active">Categoria</label>
-          <select id="id_category" name="category" class="browser-default">
-            <option value="">Tutte</option>
-            <!-- opzioni via JS -->
-          </select>
-        </div>
-        <!-- Dettaglio Altro -->
-        <div class="input-field" id="flt_category_other_wrap" style="display:none;">
-          <input type="text"
-                 id="id_category_other"
-                 name="category_other"
-                 class="validate"
-                 placeholder="Specifica se scegli 'Altro'"
-                 value="{{ request.GET.category_other|default:'' }}">
-          <label for="id_category_other" class="active">Dettaglio (se Altro)</label>
-        </div>
+                <!-- Categoria dinamica -->
+                <div class="input-field">
+                    <label class="active">Categoria</label>
+                    <select id="id_category" name="category" class="browser-default">
+                        <option value="">Tutte</option>
+                        <!-- opzioni via JS -->
+                    </select>
+                </div>
+                <!-- Dettaglio Altro -->
+                <div class="input-field" id="flt_category_other_wrap" style="display:none;">
+                    <input type="text"
+                           id="id_category_other"
+                           name="category_other"
+                           class="validate"
+                           placeholder="Specifica se scegli 'Altro'"
+                           value="{{ request.GET.category_other|default:'' }}">
+                    <label for="id_category_other" class="active">Dettaglio (se Altro)</label>
+                </div>
 
-        <!-- Date -->
-        <div class="input-field">
-          {{ filter_form.date_from }}
-          <label for="{{ filter_form.date_from.id_for_label }}" class="active">Dal</label>
-        </div>
-        <div class="input-field">
-          {{ filter_form.date_to }}
-          <label for="{{ filter_form.date_to.id_for_label }}" class="active">Al</label>
-        </div>
+                <!-- Date -->
+                <div class="input-field">
+                    {{ filter_form.date_from }}
+                    <label for="{{ filter_form.date_from.id_for_label }}" class="active">Dal</label>
+                </div>
+                <div class="input-field">
+                    {{ filter_form.date_to }}
+                    <label for="{{ filter_form.date_to.id_for_label }}" class="active">Al</label>
+                </div>
 
-        <!-- Page size -->
-        <div class="input-field">
-          <label class="active">{{ filter_form.page_size.label }}</label>
-          {{ filter_form.page_size }}
-        </div>
+                <!-- Page size -->
+                <div class="input-field">
+                    <label class="active">{{ filter_form.page_size.label }}</label>
+                    {{ filter_form.page_size }}
+                </div>
 
-        <!-- Azioni -->
-        <div class="right-align" style="margin-top:16px;">
-          <a class="btn-flat sidenav-close" href="#!">Chiudi</a>
-          <button class="btn waves-effect waves-light blue darken-3" type="submit">
-            <i class="material-icons left">filter_list</i>Applica
-          </button>
+                <!-- Azioni -->
+                <div class="right-align" style="margin-top:16px;">
+                    <a class="btn-flat sidenav-close" href="#!">Chiudi</a>
+                    <button class="btn waves-effect waves-light blue darken-3" type="submit">
+                        <i class="material-icons left">filter_list</i>Applica
+                    </button>
+                </div>
+            </form>
         </div>
-      </form>
-    </div>
-  </li>
+    </li>
 </ul>
 
 <!-- ===== TABELLA ===== -->
 <div class="card">
-  <div class="card-content">
-    <div class="responsive-table">
-      <table class="highlight striped">
-        <thead>
-        <tr>
-          <th style="white-space:nowrap;">Protocollo</th>
-          <th>Titolo</th>
-          <th>Comparto</th>
-          <th>Priorità</th>
-          <th style="white-space:nowrap;">Creato il</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for t in tickets %}
-        <tr>
-          <td style="white-space:nowrap;">
-            <a class="chip small" href="{% url 'ticket_detail' t.pk %}">{{ t.protocol }}</a>
-          </td>
-          <td class="truncate" title="{{ t.title }}">
-            <a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a>
-          </td>
-          <td><span class="chip">{{ t.department.code }}</span></td>
-          <td>
-            {% if t.priority == 'LOW' %}
-              <span class="chip green lighten-2">Bassa</span>
-            {% elif t.priority == 'MED' %}
-              <span class="chip amber lighten-2">Media</span>
-            {% elif t.priority == 'HIGH' %}
-              <span class="chip deep-orange lighten-2">Alta</span>
-            {% else %}
-              <span class="chip red lighten-2">Bloccante</span>
-            {% endif %}
-          </td>
-          <td style="white-space:nowrap;">{{ t.created_at|date:"d/m/Y H:i" }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="5" class="grey-text center-align">Nessun ticket trovato.</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+    <div class="card-content">
+        <div class="responsive-table">
+            <table class="highlight striped">
+                <div style="display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;">
+                    <div class="grey-text text-darken-1" style="font-weight:500;">
+                        Utente loggato:
+                        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                    </div>
+                </div>
+                <!-- Apri drawer -->
+                <a href="#!" data-target="filters-drawer"
+                   class="btn waves-effect waves-light blue darken-3 right sidenav-trigger">
+                    <i class="material-icons left">filter_list</i>Filtri
+                </a>
+                <thead>
+                <tr>
+                    <th style="white-space:nowrap;">Protocollo</th>
+                    <th>Titolo</th>
+                    <th>Comparto</th>
+                    <th>Priorità</th>
+                    <th style="white-space:nowrap;">Creato il</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td style="white-space:nowrap;">
+                        <a class="chip small" href="{% url 'ticket_detail' t.pk %}">{{ t.protocol }}</a>
+                    </td>
+                    <td class="truncate" title="{{ t.title }}">
+                        <a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a>
+                    </td>
+                    <td><span class="chip">{{ t.department.code }}</span></td>
+                    <td>
+                        {% if t.priority == 'LOW' %}
+                        <span class="chip green lighten-2">Bassa</span>
+                        {% elif t.priority == 'MED' %}
+                        <span class="chip amber lighten-2">Media</span>
+                        {% elif t.priority == 'HIGH' %}
+                        <span class="chip deep-orange lighten-2">Alta</span>
+                        {% else %}
+                        <span class="chip red lighten-2">Bloccante</span>
+                        {% endif %}
+                    </td>
+                    <td style="white-space:nowrap;">{{ t.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="grey-text center-align">Nessun ticket trovato.</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <!-- Bottone CSV -->
+            <a class="btn grey darken-2 right" style="margin-left:8px;"
+               href="{% url 'operator_export_csv' %}{% url_replace %}">
+                <i class="material-icons left">file_download</i>CSV
+            </a>
+        </div>
     </div>
-  </div>
 </div>
 
 <!-- PAGINAZIONE -->
 <div class="card-action center">
-  <ul class="pagination">
-    {% if page_obj.has_previous %}
-      <li class="waves-effect"><a href="{% url_replace page=page_obj.previous_page_number %}"><i class="material-icons">chevron_left</i></a></li>
-    {% else %}
-      <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
-    {% endif %}
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+        <li class="waves-effect"><a href="{% url_replace page=page_obj.previous_page_number %}"><i
+                class="material-icons">chevron_left</i></a></li>
+        {% else %}
+        <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
+        {% endif %}
 
-    <li class="active blue darken-3"><a href="#!">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
+        <li class="active blue darken-3"><a href="#!">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</a></li>
 
-    {% if page_obj.has_next %}
-      <li class="waves-effect"><a href="{% url_replace page=page_obj.next_page_number %}"><i class="material-icons">chevron_right</i></a></li>
-    {% else %}
-      <li class="disabled"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
-    {% endif %}
-  </ul>
+        {% if page_obj.has_next %}
+        <li class="waves-effect"><a href="{% url_replace page=page_obj.next_page_number %}"><i class="material-icons">chevron_right</i></a>
+        </li>
+        {% else %}
+        <li class="disabled"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
+        {% endif %}
+    </ul>
 </div>
 
 <!-- ===== DATI E SCRIPT ===== -->
@@ -189,87 +194,87 @@
 {{ dep_code_by_id|json_script:"dep-code-by-id" }}
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Drawer
-  M.Sidenav.init(document.querySelectorAll('.sidenav'), { edge: 'right', draggable: true });
+    document.addEventListener('DOMContentLoaded', function() {
+      // Drawer
+      M.Sidenav.init(document.querySelectorAll('.sidenav'), { edge: 'right', draggable: true });
 
-  // Apri auto se filtri attivi
-  {% if filters_open %}
-    const inst = M.Sidenav.getInstance(document.getElementById('filters-drawer'));
-    if (inst) inst.open();
-  {% endif %}
+      // Apri auto se filtri attivi
+      {% if filters_open %}
+        const inst = M.Sidenav.getInstance(document.getElementById('filters-drawer'));
+        if (inst) inst.open();
+      {% endif %}
 
-  // Mappe dal server
-  const categoryMap = JSON.parse(document.getElementById('category-map').textContent);   // {ICT:[[val,label],...], WH:[...], SP:[...]}
-  const depCodeById = JSON.parse(document.getElementById('dep-code-by-id').textContent); // {"3":"ICT","7":"WH",...}
-  const OTHER_CODE  = "{{ OTHER_CODE }}";
-  const preSelCategory = "{{ request.GET.category|default:'' }}";
+      // Mappe dal server
+      const categoryMap = JSON.parse(document.getElementById('category-map').textContent);   // {ICT:[[val,label],...], WH:[...], SP:[...]}
+      const depCodeById = JSON.parse(document.getElementById('dep-code-by-id').textContent); // {"3":"ICT","7":"WH",...}
+      const OTHER_CODE  = "{{ OTHER_CODE }}";
+      const preSelCategory = "{{ request.GET.category|default:'' }}";
 
-  const depSelect  = document.getElementById('id_department');
-  const catSelect  = document.getElementById('id_category');
-  const otherWrap  = document.getElementById('flt_category_other_wrap');
-  const otherInput = document.getElementById('id_category_other');
+      const depSelect  = document.getElementById('id_department');
+      const catSelect  = document.getElementById('id_category');
+      const otherWrap  = document.getElementById('flt_category_other_wrap');
+      const otherInput = document.getElementById('id_category_other');
 
-  function renderCategoryOptions(depId) {
-    if (!catSelect) return;
+      function renderCategoryOptions(depId) {
+        if (!catSelect) return;
 
-    // reset
-    while (catSelect.firstChild) catSelect.removeChild(catSelect.firstChild);
+        // reset
+        while (catSelect.firstChild) catSelect.removeChild(catSelect.firstChild);
 
-    // "Tutte"
-    const optAll = document.createElement('option');
-    optAll.value = "";
-    optAll.textContent = "Tutte";
-    catSelect.appendChild(optAll);
+        // "Tutte"
+        const optAll = document.createElement('option');
+        optAll.value = "";
+        optAll.textContent = "Tutte";
+        catSelect.appendChild(optAll);
 
-    // scelte per reparto
-    const depCode = depId ? depCodeById[String(depId)] : null;
-    const choices = depCode && categoryMap[depCode] ? categoryMap[depCode] : [];
+        // scelte per reparto
+        const depCode = depId ? depCodeById[String(depId)] : null;
+        const choices = depCode && categoryMap[depCode] ? categoryMap[depCode] : [];
 
-    choices.forEach(function(pair) {
-      const value = pair[0], label = pair[1];
-      const opt = document.createElement('option');
-      opt.value = value;
-      opt.textContent = label;
-      catSelect.appendChild(opt);
+        choices.forEach(function(pair) {
+          const value = pair[0], label = pair[1];
+          const opt = document.createElement('option');
+          opt.value = value;
+          opt.textContent = label;
+          catSelect.appendChild(opt);
+        });
+
+        // ripristina selezione da querystring se coerente
+        if (preSelCategory) {
+          const found = Array.from(catSelect.options).find(o => o.value === preSelCategory);
+          catSelect.value = found ? preSelCategory : "";
+        } else {
+          catSelect.value = "";
+        }
+
+        toggleOther(catSelect.value);
+      }
+
+      function toggleOther(value) {
+        if (!otherWrap) return;
+        if (value === OTHER_CODE) {
+          otherWrap.style.display = "";
+        } else {
+          otherWrap.style.display = "none";
+          if (otherInput) otherInput.value = "";
+        }
+      }
+
+      // init
+      renderCategoryOptions(depSelect ? depSelect.value : null);
+
+      // eventi
+      if (depSelect) {
+        depSelect.addEventListener('change', function () {
+          renderCategoryOptions(this.value);
+        });
+      }
+      if (catSelect) {
+        catSelect.addEventListener('change', function () {
+          toggleOther(this.value);
+        });
+      }
     });
-
-    // ripristina selezione da querystring se coerente
-    if (preSelCategory) {
-      const found = Array.from(catSelect.options).find(o => o.value === preSelCategory);
-      catSelect.value = found ? preSelCategory : "";
-    } else {
-      catSelect.value = "";
-    }
-
-    toggleOther(catSelect.value);
-  }
-
-  function toggleOther(value) {
-    if (!otherWrap) return;
-    if (value === OTHER_CODE) {
-      otherWrap.style.display = "";
-    } else {
-      otherWrap.style.display = "none";
-      if (otherInput) otherInput.value = "";
-    }
-  }
-
-  // init
-  renderCategoryOptions(depSelect ? depSelect.value : null);
-
-  // eventi
-  if (depSelect) {
-    depSelect.addEventListener('change', function () {
-      renderCategoryOptions(this.value);
-    });
-  }
-  if (catSelect) {
-    catSelect.addEventListener('change', function () {
-      toggleOther(this.value);
-    });
-  }
-});
 </script>
 
 {% endblock %}
