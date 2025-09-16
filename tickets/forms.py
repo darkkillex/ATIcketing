@@ -1,18 +1,24 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-from django.utils import timezone
 import os
 
 from .models import Ticket, Department
-from .constants import ICT_CATEGORY_CHOICES, ICT_CATEGORY_OTHER
+from .constants import (
+    ICT_CATEGORY_CHOICES, WH_CATEGORY_CHOICES, SP_CATEGORY_CHOICES, OTHER_CODE
+)
+
+# Unione di tutte le scelte categoria, così il POST inviato dal JS è sempre valido lato form
+ALL_CATEGORY_CHOICES = [("", "— seleziona —")] + ICT_CATEGORY_CHOICES + WH_CATEGORY_CHOICES + SP_CATEGORY_CHOICES
 
 ALLOWED_EXTS = set(ext.strip().lower() for ext in settings.ATTACHMENTS_ALLOWED_EXTENSIONS)
 MAX_SIZE_BYTES = settings.ATTACHMENTS_MAX_SIZE_MB * 1024 * 1024
 
+
 # ✅ Widget che abilita l'upload multiplo (Django 5 richiede questa property)
 class MultiFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
+
 
 # ✅ Campo che accetta una LISTA di file (compatibile con MultiFileInput)
 class MultiFileField(forms.FileField):
@@ -36,19 +42,20 @@ class MultiFileField(forms.FileField):
         if self.required and not data:
             raise forms.ValidationError(self.error_messages['required'], code='required')
 
+
 class NewTicketForm(forms.ModelForm):
-    # Allegati (come già avevi)
+    # Allegati
     attachments = MultiFileField(required=False)
 
-    # 👇 Nuovi campi per categoria ICT
+    # Campi categoria (form-only: category_other)
     category = forms.ChoiceField(
-        label="Categoria (ICT)",
-        choices=[("", "— seleziona —")] + ICT_CATEGORY_CHOICES,
+        label="Categoria",
+        choices=ALL_CATEGORY_CHOICES,
         required=False,
     )
     category_other = forms.CharField(
-        label="Specificare (se Altro)",
-        max_length=100,
+        label="Dettaglio (se Altro)",
+        max_length=150,
         required=False,
     )
 
@@ -57,7 +64,9 @@ class NewTicketForm(forms.ModelForm):
         fields = [
             'title', 'description', 'department',
             'priority', 'impact', 'urgency', 'source_channel',
-            'location', 'asset_code', 'category', 'category_other',
+            'location', 'asset_code',
+            'category',            #  è un field del MODELLO
+            # 'category_other',    #  form-only: NON inserirlo nei fields del modello
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 6}),
@@ -65,11 +74,11 @@ class NewTicketForm(forms.ModelForm):
 
     def __init__(self, *args, department=None, **kwargs):
         """
-        Passa `department` dalla view se vuoi pre-selezionare/filter logiche (es. ICT).
+        `department` può essere passato dalla view se vuoi pre-selezionare e bloccare il reparto.
         """
         super().__init__(*args, **kwargs)
 
-        # --- i tuoi settaggi esistenti ---
+        # Style/UX
         self.fields['title'].widget.attrs.update({
             'class': 'validate',
             'placeholder': 'Titolo breve',
@@ -100,39 +109,40 @@ class NewTicketForm(forms.ModelForm):
         except Exception:
             pass
 
-        # --- stile per i nuovi campi categoria ---
+        # nuovi campi
         self.fields['category'].widget.attrs.update({'class': 'browser-default'})
         self.fields['category_other'].widget.attrs.update({
             'class': 'validate',
-            'placeholder': 'Inserisci la categoria',
+            'placeholder': 'Specifica se scegli "Altro"',
             'autocomplete': 'off',
         })
 
-        # salva il reparto passato dalla view (se presente) per usarlo in clean()
+        # reparto passato dalla view (opzionale, usato in clean)
         self._preset_department = department
 
     def clean(self):
         cleaned = super().clean()
 
-        # quale reparto è selezionato effettivamente?
-        dep = self._preset_department or cleaned.get('department')
-        dep_code = getattr(dep, 'code', None)
-
+        dep = getattr(self, "_preset_department", None) or cleaned.get('department')
+        dep_code = getattr(dep, 'code', None) or ""
         cat = (cleaned.get('category') or "").strip()
         other = (cleaned.get('category_other') or "").strip()
 
-        if dep_code == "ICT":
-            # per ICT: la categoria è richiesta
+        # Reparti che hanno categorie
+        dep_has_categories = dep_code in ("ICT", "WH", "SP")
+
+        if dep_has_categories:
+            # categoria richiesta
             if not cat:
                 self.add_error('category', "Seleziona una categoria.")
-            # se "Altro", richiedi specifica
-            if cat == "OTHER" and not other:
+            # se 'Altro', obbliga specifica
+            if cat == OTHER_CODE and not other:
                 self.add_error('category_other', "Specifica la categoria se hai scelto 'Altro'.")
-            # se NON "Altro", svuota l'eventuale testo digitato
-            if cat != "OTHER":
+            # se NON 'Altro', svuota l'eventuale testo
+            if cat != OTHER_CODE:
                 cleaned['category_other'] = ""
         else:
-            # non ICT: non salviamo nulla per la categoria
+            # reparti senza categorie: non salvare nulla
             cleaned['category'] = ""
             cleaned['category_other'] = ""
 
@@ -147,7 +157,6 @@ class NewTicketForm(forms.ModelForm):
             ext = (ext or '').replace('.', '').lower()
             if ext not in ALLOWED_EXTS:
                 errors.append(f"File non consentito: {f.name} (estensione .{ext})")
-
             # Dimensione
             if f.size > MAX_SIZE_BYTES:
                 errors.append(
@@ -157,6 +166,7 @@ class NewTicketForm(forms.ModelForm):
         if errors:
             raise forms.ValidationError(errors)
         return files
+
 
 # --- Commenti e upload aggiuntivo ---
 class CommentForm(forms.Form):
@@ -194,12 +204,10 @@ class AttachmentUploadForm(forms.Form):
         files = self.cleaned_data.get('attachments') or []
         errors = []
         for f in files:
-            # Estensione
             _, ext = os.path.splitext(f.name)
             ext = (ext or '').replace('.', '').lower()
             if ext not in ALLOWED_EXTS:
                 errors.append(f"File non consentito: {f.name} (estensione .{ext})")
-            # Dimensione
             if f.size > MAX_SIZE_BYTES:
                 errors.append(
                     f"{f.name}: dimensione {int(f.size/1024/1024)}MB oltre il limite di "
@@ -208,6 +216,7 @@ class AttachmentUploadForm(forms.Form):
         if errors:
             raise forms.ValidationError(errors)
         return files
+
 
 class TicketFilterForm(forms.Form):
     q = forms.CharField(label="Testo", required=False)
@@ -252,4 +261,3 @@ class TicketFilterForm(forms.Form):
         for name in ('date_from', 'date_to'):
             if name in self.fields:
                 self.fields[name].widget.attrs.update({'class': 'validate'})
-

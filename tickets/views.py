@@ -26,7 +26,12 @@ from .emails import (
     send_new_attachments,
 )
 from .audit import log_status_change, log_comment, log_attachments
-
+from .constants import (
+    OTHER_CODE,
+    ICT_CATEGORY_CHOICES,
+    WH_CATEGORY_CHOICES,
+    SP_CATEGORY_CHOICES,
+)
 
 # ---------------------- API ----------------------
 class TicketViewSet(viewsets.ModelViewSet):
@@ -356,18 +361,37 @@ def ticket_detail(request, pk: int):
 
 @login_required
 def new_ticket(request):
-    # prendi l'ID del reparto ICT (se esiste)
+    # ID reparti per il JS (ok se qualcuno non esiste)
     ict_dep = Department.objects.filter(code__iexact="ICT").only("id").first()
+    wh_dep  = Department.objects.filter(code__iexact="WH").only("id").first()
+    sp_dep  = Department.objects.filter(code__iexact="SP").only("id").first()
+
     ict_dep_id = ict_dep.id if ict_dep else None
+    wh_dep_id  = wh_dep.id if wh_dep else None
+    sp_dep_id  = sp_dep.id if sp_dep else None
 
     if request.method == 'POST':
         form = NewTicketForm(request.POST, request.FILES)
         if form.is_valid():
-            data = {k: v for k, v in form.cleaned_data.items() if k != 'attachments'}
+            cleaned = form.cleaned_data.copy()
+
+            # stacca gli allegati e rimuovi eventuali chiavi extra non-model
+            files = cleaned.pop('attachments', []) or []
+            cleaned.pop('category_custom', None)  # difensivo se ti arriva da vecchi template
+
+            # tieni SOLO i field che esistono sul modello (ma SENZA escludere FK!)
+            allowed = {
+                'title', 'description', 'department',
+                'priority', 'impact', 'urgency', 'source_channel',
+                'location', 'asset_code',
+                'category', 'category_other',
+            }
+            data = {k: v for k, v in cleaned.items() if k in allowed}
             data['created_by'] = request.user
+
             ticket = create_ticket_with_notification(**data)
 
-            files = form.cleaned_data.get('attachments') or []
+            # crea allegati
             created_files = []
             for f in files:
                 created_files.append(Attachment.objects.create(
@@ -379,7 +403,6 @@ def new_ticket(request):
                     uploaded_by=request.user,
                 ))
 
-            # Audit allegati in creazione (facoltativo)
             if created_files:
                 try:
                     log_attachments(ticket, actor=request.user,
@@ -389,20 +412,32 @@ def new_ticket(request):
 
             messages.success(request, f"Ticket creato: {ticket.protocol}")
             return redirect('dash_team' if is_staffish(request.user) else 'dash_operator')
-        else:
-            messages.error(request, "Correggi gli errori nel form.")
-            # ⬇️ passa anche qui l'ict_dep_id se il form ha errori
-            return render(request, 'tickets/new.html', {
-                'form': form,
-                'ict_dep_id': ict_dep_id,
-            })
-    else:
-        form = NewTicketForm()
 
+        messages.error(request, "Correggi gli errori nel form.")
+        return render(request, 'tickets/new.html', {
+            'form': form,
+            'ict_dep_id': ict_dep_id,
+            'wh_dep_id':  wh_dep_id,
+            'sp_dep_id':  sp_dep_id,
+            'ICT_CATEGORY_CHOICES': ICT_CATEGORY_CHOICES,
+            'WH_CATEGORY_CHOICES':  WH_CATEGORY_CHOICES,
+            'SP_CATEGORY_CHOICES':  SP_CATEGORY_CHOICES,
+            'OTHER_CODE': OTHER_CODE,
+        })
+
+    # GET
+    form = NewTicketForm()
     return render(request, 'tickets/new.html', {
         'form': form,
-        'ict_dep_id': ict_dep_id,   # ⬅️ usato dal template/JS per mostrare le categorie ICT
+        'ict_dep_id': ict_dep_id,
+        'wh_dep_id':  wh_dep_id,
+        'sp_dep_id':  sp_dep_id,
+        'ICT_CATEGORY_CHOICES': ICT_CATEGORY_CHOICES,
+        'WH_CATEGORY_CHOICES':  WH_CATEGORY_CHOICES,
+        'SP_CATEGORY_CHOICES':  SP_CATEGORY_CHOICES,
+        'OTHER_CODE': OTHER_CODE,
     })
+
 
 @login_required
 def ticket_audit_csv(request, pk: int):

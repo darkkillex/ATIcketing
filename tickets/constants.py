@@ -1,18 +1,29 @@
 # tickets/constants.py
 
-# Codici per le categorie ICT
-ICT_CATEGORY_HARDWARE = "HW"
-ICT_CATEGORY_SOFTWARE = "SW"
-ICT_CATEGORY_BKW      = "BKW"
-ICT_CATEGORY_EUREKA   = "EUREKA"
-ICT_CATEGORY_ACCOUNT  = "ACCOUNT"
-ICT_CATEGORY_OTHER    = "OTHER"
+# Valore comune per "Altro"
+OTHER_CODE = "OTHER"
 
+# ICT
 ICT_CATEGORY_CHOICES = [
-    (ICT_CATEGORY_HARDWARE, "Hardware"),
-    (ICT_CATEGORY_SOFTWARE, "Software"),
-    (ICT_CATEGORY_BKW,      "BKW"),
-    (ICT_CATEGORY_EUREKA,   "Eureka"),
-    (ICT_CATEGORY_ACCOUNT,  "Account utente"),
-    (ICT_CATEGORY_OTHER,    "Altro"),
+    ("HW", "Problemi Hardware"),
+    ("SW", "Problemi Software"),
+    ("BKW", "BKW"),
+    ("EUREKA", "Eureka"),
+    ("ACCOUNT", "Account utente"),
+    (OTHER_CODE, "Altro"),
+]
+
+# Magazzino (WH)
+WH_CATEGORY_CHOICES = [
+    ("DPI", "DPI"),
+    ("CONSUMABLES", "Materiali di consumo"),
+    (OTHER_CODE, "Altro"),
+]
+
+# Piano Turni (SP)
+SP_CATEGORY_CHOICES = [
+    ("FERIE", "Ferie"),
+    ("PERMESSI", "Permessi"),
+    ("CAMBIO_TURNO", "Cambio turno"),
+    (OTHER_CODE, "Permessi specifici (altro)"),
 ]

@@ -34,19 +34,17 @@
             {% for e in form.department.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
 
-          <!-- PRIORITÀ / IMPATTO / URGENZA / CANALE -->
+          <!-- Priorità/Impatto/Urgenza -->
           <div class="input-field col s12 m6">
             {{ form.priority|add_class:"browser-default" }}
             <label class="active">{{ form.priority.label }}</label>
             {% for e in form.priority.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
-
           <div class="input-field col s12 m6">
             {{ form.impact|add_class:"browser-default" }}
             <label class="active">{{ form.impact.label }}</label>
             {% for e in form.impact.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
-
           <div class="input-field col s12 m6">
             {{ form.urgency|add_class:"browser-default" }}
             <label class="active">{{ form.urgency.label }}</label>
@@ -61,34 +59,62 @@
           </div>
           {% endif %}
 
-          <!-- 👇 CATEGORIE ICT (mostra SOLO se reparto = ICT) -->
-          {% if form.category %}
-          <div id="ict-category-row" class="input-field col s12 m6" style="display:none;">
-            <label class="active">{{ form.category.label }}</label>
-            {{ form.category|add_class:"browser-default" }}
-            {% for e in form.category.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          <!-- Location / Asset -->
+          <div class="input-field col s12 m6">
+            {{ form.location.label_tag }} {{ form.location }}
+            {% for e in form.location.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
-          {% endif %}
+          <div class="input-field col s12 m6">
+            {{ form.asset_code.label_tag }} {{ form.asset_code }}
+            {% for e in form.asset_code.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
+          </div>
 
-          {% if form.category_other %}
-          <div id="ict-category-other-row" class="input-field col s12 m6" style="display:none;">
+          <!-- ===== CATEGORIE PER REPARTO ===== -->
+          <div class="col s12">
+            <h6 class="grey-text text-darken-1" style="margin-top: .5rem;">Categoria (se prevista dal reparto)</h6>
+          </div>
+
+          <!-- ICT -->
+          <div class="input-field col s12 m6 category-select" data-dep="ICT" style="display:none;">
+            <label class="active">Categoria (ICT)</label>
+            <select id="id_category_ict" class="browser-default" disabled>
+              <option value="">— seleziona —</option>
+              {% for val,label in ICT_CATEGORY_CHOICES %}
+                <option value="{{ val }}" {% if form.category.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- WH -->
+          <div class="input-field col s12 m6 category-select" data-dep="WH" style="display:none;">
+            <label class="active">Categoria (Magazzino)</label>
+            <select id="id_category_wh" class="browser-default" disabled>
+              <option value="">— seleziona —</option>
+              {% for val,label in WH_CATEGORY_CHOICES %}
+                <option value="{{ val }}" {% if form.category.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- SP -->
+          <div class="input-field col s12 m6 category-select" data-dep="SP" style="display:none;">
+            <label class="active">Categoria (Piano turni)</label>
+            <select id="id_category_sp" class="browser-default" disabled>
+              <option value="">— seleziona —</option>
+              {% for val,label in SP_CATEGORY_CHOICES %}
+                <option value="{{ val }}" {% if form.category.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Campo nascosto/visibile che invia davvero la categoria -->
+          <input type="hidden" name="category" id="id_category_real" value="{{ form.category.value|default_if_none:'' }}"/>
+
+          <!-- Altro (dettaglio) -->
+          <div class="input-field col s12 m6" id="category_other_wrap" style="display:none;">
             {{ form.category_other.label_tag }}
             {{ form.category_other }}
             {% for e in form.category_other.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
-          </div>
-          {% endif %}
-
-          <!-- Campi testo aggiuntivi -->
-          <div class="input-field col s12 m6">
-            {{ form.location.label_tag }}
-            {{ form.location }}
-            {% for e in form.location.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
-          </div>
-
-          <div class="input-field col s12 m6">
-            {{ form.asset_code.label_tag }}
-            {{ form.asset_code }}
-            {% for e in form.asset_code.errors %}<span class="helper-text red-text">{{ e }}</span>{% endfor %}
           </div>
 
           <!-- Allegati -->
@@ -123,7 +149,6 @@
               </div>
             </div>
           </div>
-
         </form>
 
       </div>
@@ -131,55 +156,80 @@
   </div>
 </div>
 
-<!-- JS: mostra le categorie solo se reparto = ICT; mostra "Altro" quando selezionato -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const depSel   = document.getElementById('id_department');
-  const catRow   = document.getElementById('ict-category-row');
-  const otherRow = document.getElementById('ict-category-other-row');
-  const catSel   = document.getElementById('id_category');
-  const catOther = document.getElementById('id_category_other');
+(function() {
+  const depSelect = document.getElementById("id_department");
+  const catReal   = document.getElementById("id_category_real");
+  const otherWrap = document.getElementById("category_other_wrap");
+  const OTHER_CODE = "{{ OTHER_CODE }}";
 
-  // Passato dalla view: id del reparto ICT (o null se non trovato)
-  const ICT_DEP_ID = {{ ict_dep_id|default:"null" }};
+  // mapping dep_id -> codice dep
+  const ICT_ID = {{ ict_dep_id|default:"null" }};
+  const WH_ID  = {{ wh_dep_id|default:"null" }};
+  const SP_ID  = {{ sp_dep_id|default:"null" }};
 
-  function isICTSelected() {
-    if (!depSel) return false;
-    const val = depSel.value;
-    if (ICT_DEP_ID !== null) {
-      return String(val) === String(ICT_DEP_ID);
+  // selettori per categoria per reparto
+  const selICT = document.getElementById("id_category_ict");
+  const selWH  = document.getElementById("id_category_wh");
+  const selSP  = document.getElementById("id_category_sp");
+
+  function activeSelectForDepartment(depId) {
+    // nascondi/disable tutto
+    [selICT, selWH, selSP].forEach(sel => {
+      sel.closest(".category-select").style.display = "none";
+      sel.disabled = true;
+    });
+
+    let active = null;
+    if (depId && ICT_ID && depId.toString() === ICT_ID.toString()) {
+      active = selICT;
+    } else if (depId && WH_ID && depId.toString() === WH_ID.toString()) {
+      active = selWH;
+    } else if (depId && SP_ID && depId.toString() === SP_ID.toString()) {
+      active = selSP;
     }
-    // fallback se non passi ict_dep_id: prova a riconoscere dal testo dell'opzione
-    const opt = depSel.options[depSel.selectedIndex];
-    return opt && opt.text && opt.text.trim().toUpperCase().startsWith('ICT');
+
+    if (active) {
+      active.closest(".category-select").style.display = "";
+      active.disabled = false;
+    }
+    return active;
   }
 
-  function sync() {
-    const showICT = isICTSelected();
-
-    if (catRow) catRow.style.display = showICT ? '' : 'none';
-    if (catSel) {
-      catSel.disabled = !showICT;
-      if (!showICT) {
-        catSel.value = '';
-      }
+  function syncCategoryToHidden(activeSel) {
+    if (!activeSel || activeSel.disabled) {
+      catReal.value = "";
+      otherWrap.style.display = "none";
+      return;
     }
-
-    const isOther = showICT && catSel && catSel.value === 'OTHER';
-    if (otherRow) otherRow.style.display = isOther ? '' : 'none';
-    if (catOther) {
-      catOther.disabled = !isOther;
-      if (!isOther) {
-        catOther.value = '';
-      }
-    }
+    catReal.value = activeSel.value || "";
+    otherWrap.style.display = (activeSel.value === OTHER_CODE) ? "" : "none";
   }
 
-  if (depSel)  depSel.addEventListener('change', sync);
-  if (catSel)  catSel.addEventListener('change', sync);
+  // on load
+  const currentDepId = depSelect ? depSelect.value : null;
+  const activeSelOnLoad = activeSelectForDepartment(currentDepId);
+  // ripristina eventuale categoria selezionata dal server
+  if (activeSelOnLoad && catReal.value) {
+    activeSelOnLoad.value = catReal.value;
+  }
+  syncCategoryToHidden(activeSelOnLoad);
 
-  // Prima sync per stato iniziale (utile dopo validation errors)
-  sync();
-});
+  // eventi
+  if (depSelect) {
+    depSelect.addEventListener("change", function() {
+      const active = activeSelectForDepartment(this.value);
+      // reset categoria quando cambio reparto
+      if (active) active.value = "";
+      syncCategoryToHidden(active);
+    });
+  }
+
+  [selICT, selWH, selSP].forEach(sel => {
+    sel.addEventListener("change", function() {
+      syncCategoryToHidden(this);
+    });
+  });
+})();
 </script>
 {% endblock %}
