@@ -73,7 +73,6 @@ class Ticket(models.Model):
     impact = models.CharField(max_length=4, choices=IMPACT_CHOICES, default='ONE')
     urgency = models.CharField(max_length=4, choices=URGENCY_CHOICES, default='MED')
     source_channel = models.CharField(max_length=3, choices=SOURCE_CHOICES, default='WEB')
-
     # categorizzazione generica (verrà pilotata da JS e validata lato server)
     category = models.CharField(max_length=100, blank=True, null=True, default="")
     category_other = models.CharField(max_length=100, blank=True, null=True, default="")

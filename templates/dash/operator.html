@@ -125,6 +125,7 @@
                     <th style="white-space:nowrap;">Protocollo</th>
                     <th>Titolo</th>
                     <th>Comparto</th>
+                    <th>Categoria</th>
                     <th>Priorità</th>
                     <th style="white-space:nowrap;">Creato il</th>
                 </tr>
@@ -139,6 +140,7 @@
                         <a href="{% url 'ticket_detail' t.pk %}">{{ t.title }}</a>
                     </td>
                     <td><span class="chip">{{ t.department.code }}</span></td>
+                    <td><span class="chip">{{ t.category}}</span></td>
                     <td>
                         {% if t.priority == 'LOW' %}
                         <span class="chip green lighten-2">Bassa</span>
