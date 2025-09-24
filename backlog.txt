@@ -14,4 +14,5 @@ Bottone logout non funzionante✅
 Bottone allegati non carica alcun tipo di file ✅
 Centrare la form di Nuovo Ticket⏳
 Modificare ordine delle varie label in Nuovo ticket⏳
+Modificare nella tabella di riepilogo ticket, la Categoria, facendo comparire non il codice di abbreviazione ma l'intera descrizione dfell categoria⏳
 Autenticazione separata lato utente lato admin. Se cambio login, loggia automaticamente su entrambe le parti ⏳
