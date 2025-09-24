@@ -208,7 +208,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Drawer Materialize
-      const instances = M.Sidenav.init(document.querySelectorAll('.sidenav'), { edge: 'right', draggable: true });
+      const instances = M.Sidenav.init(document.querySelectorAll('.sidenav'), { edge: 'right', draggable: true, preventScrolling: true });
 
       // Apri auto se filtri attivi
       {% if filters_open %}
@@ -289,6 +289,24 @@
         });
       }
     });
+
+          // Blocca il click sull’overlay della sidenav (così non chiude)
+    document.addEventListener('click', function (e) {
+      if (e.target && e.target.classList.contains('sidenav-overlay')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true); // ⬅️ in capturing, così lo prendiamo prima di Materialize
+
+  // (facoltativo) blocca anche tocchi mobili
+    document.addEventListener('touchstart', function (e) {
+      if (e.target && e.target.classList.contains('sidenav-overlay')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, { capture: true, passive: false });
 </script>
 
 {% endblock %}
